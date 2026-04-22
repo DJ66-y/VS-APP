@@ -1,0 +1,1940 @@
+
+<!-- 
+  【注意】当前为：本地离线优先模式
+  
+  === 教室离线部署说明 ===
+  1. 默认读取同级目录下的 tailwind.js、react.js、react-dom.js、babel.js。
+  2. 如需在线预览，可改用下方注释中的国内 CDN。
+  3. 资源替换：
+     - 请在 index.html 同级建立 assets 文件夹
+     - 放入图片 donk.jpg 和 音乐 boss_music.mp3
+-->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>无人机设备基础 - 抢答对决系统</title>
+  
+  <!-- ========================================= -->
+  <!-- 1. 本地离线库 (推荐，便于课堂离线使用和开源复现) -->
+  <!-- ========================================= -->
+  <script src="./tailwind.js"></script>
+  <script src="./react.js"></script>
+  <script src="./react-dom.js"></script>
+  <script src="./babel.js"></script>
+
+  <!-- ========================================= -->
+  <!-- 2. 国内 CDN (仅在不携带本地库文件时备用) -->
+  <!-- ========================================= -->
+  <!-- 
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.staticfile.net/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdn.staticfile.net/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.staticfile.net/babel-standalone/7.23.5/babel.min.js"></script>
+  -->
+
+  <style>
+    /* 全局样式 */
+    body {
+      margin: 0;
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); /* Slate 900 to Indigo 950 */
+      color: #f1f5f9;
+      font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+      overflow: hidden;
+      user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    /* Boss Mode Background */
+    body.boss-mode {
+      background: linear-gradient(135deg, #2a0a0a 0%, #000000 100%);
+    }
+    
+    /* 玻璃拟态面板 */
+    .glass-panel {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+    
+    .boss-panel {
+      background: rgba(40, 10, 10, 0.8) !important;
+      border: 1px solid rgba(255, 50, 50, 0.3) !important;
+      box-shadow: 0 0 50px rgba(255, 0, 0, 0.2) !important;
+    }
+
+    /* 动画关键帧 */
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 20px rgba(234, 179, 8, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(234, 179, 8, 0); }
+    }
+    
+    @keyframes countdown-pop {
+      0% { transform: scale(0.5); opacity: 0; }
+      50% { transform: scale(1.2); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes slide-in-up {
+      from { transform: translateY(100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    @keyframes flash-green {
+      0% { background-color: rgba(34, 197, 94, 0.8); transform: scale(1.1); }
+      100% { background-color: transparent; transform: scale(1); }
+    }
+    
+    @keyframes pop-in {
+      0% { transform: scale(0); opacity: 0; }
+      70% { transform: scale(1.2); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    @keyframes slam {
+       0% { transform: scale(3); opacity: 0; letter-spacing: 20px; }
+       100% { transform: scale(1); opacity: 1; letter-spacing: 0px; }
+    }
+    
+    @keyframes stripes-move { from { background-position: 0 0; } to { background-position: 60px 60px; } }
+    @keyframes elastic-slide-right { from { transform: translateX(-150%) skewX(20deg); opacity: 0; } to { transform: translateX(0) skewX(0); opacity: 1; } }
+    @keyframes elastic-slide-left { from { transform: translateX(150%) skewX(-20deg); opacity: 0; } to { transform: translateX(0) skewX(0); opacity: 1; } }
+    @keyframes slam-impact { 
+       0% { transform: scale(3) rotate(-15deg); opacity: 0; filter: blur(10px); } 
+       70% { transform: scale(0.9) rotate(5deg); opacity: 1; filter: blur(0); }
+       85% { transform: scale(1.1) rotate(-3deg); }
+       100% { transform: scale(1) rotate(0); opacity: 1; } 
+    }
+    @keyframes lightning-strike {
+       0% { opacity: 0; transform: translateY(-80px) scaleY(1.5) scaleX(0.5); }
+       20% { opacity: 1; transform: translateY(0) scaleY(1) scaleX(1); filter: brightness(2); }
+       40% { opacity: 0.5; filter: brightness(1); }
+       60% { opacity: 1; filter: brightness(1.5); }
+       100% { opacity: 0; transform: scale(1.2); }
+    }
+    @keyframes shockwave {
+       0% { transform: scale(0); opacity: 0.6; border-width: 60px; }
+       100% { transform: scale(2); opacity: 0; border-width: 0; }
+    }
+    @keyframes flash {
+       0%, 100% { opacity: 0.1; }
+       5% { opacity: 0.3; }
+       10% { opacity: 0.1; }
+    }
+
+    /* Chain Animation */
+    @keyframes chain-shake {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      25% { transform: translate(-5px, 5px) rotate(-1deg); }
+      75% { transform: translate(5px, -5px) rotate(1deg); }
+    }
+    @keyframes chain-break-left {
+      0% { transform: translateX(0) rotate(45deg); opacity: 1; }
+      100% { transform: translateX(-100vw) rotate(0deg); opacity: 0; }
+    }
+    @keyframes chain-break-right {
+      0% { transform: translateX(0) rotate(-45deg); opacity: 1; }
+      100% { transform: translateX(100vw) rotate(0deg); opacity: 0; }
+    }
+    @keyframes screen-shatter {
+      0% { transform: scale(1); filter: hue-rotate(0deg); }
+      50% { transform: scale(1.05) translate(2px, -2px); filter: hue-rotate(90deg) contrast(200%); }
+      100% { transform: scale(1); filter: hue-rotate(0deg); }
+    }
+
+    /* 火焰特效动画 */
+    @keyframes burn-orange {
+      0% { box-shadow: 0 0 10px #fbbf24, 0 0 20px #d97706, 0 -10px 40px #b45309; }
+      50% { box-shadow: 0 0 15px #fcd34d, 0 0 30px #f59e0b, 0 -15px 50px #d97706; transform: scale(1.02); }
+      100% { box-shadow: 0 0 10px #fbbf24, 0 0 20px #d97706, 0 -10px 40px #b45309; }
+    }
+
+    @keyframes burn-red {
+      0% { box-shadow: 0 0 15px #fca5a5, 0 0 30px #ef4444, 0 -20px 60px #b91c1c; }
+      50% { box-shadow: 0 0 20px #fecaca, 0 0 40px #f87171, 0 -25px 70px #dc2626; transform: scale(1.03); }
+      100% { box-shadow: 0 0 15px #fca5a5, 0 0 30px #ef4444, 0 -20px 60px #b91c1c; }
+    }
+
+    @keyframes burn-blue {
+      0% { box-shadow: 0 0 20px #a5f3fc, 0 0 40px #06b6d4, 0 -30px 80px #1d4ed8; filter: hue-rotate(0deg); }
+      50% { box-shadow: 0 0 30px #cffafe, 0 0 60px #22d3ee, 0 -40px 100px #2563eb; transform: scale(1.05); filter: hue-rotate(15deg); }
+      100% { box-shadow: 0 0 20px #a5f3fc, 0 0 40px #06b6d4, 0 -30px 80px #1d4ed8; filter: hue-rotate(0deg); }
+    }
+
+    @keyframes burn-purple {
+      0% { box-shadow: 0 0 20px #e9d5ff, 0 0 40px #a855f7, 0 -30px 80px #7e22ce; filter: hue-rotate(0deg); }
+      50% { box-shadow: 0 0 30px #f3e8ff, 0 0 60px #c084fc, 0 -40px 100px #9333ea; transform: scale(1.05); filter: hue-rotate(15deg); }
+      100% { box-shadow: 0 0 20px #e9d5ff, 0 0 40px #a855f7, 0 -30px 80px #7e22ce; filter: hue-rotate(0deg); }
+    }
+
+    .fire-lv1 { animation: burn-orange 2s infinite ease-in-out; border-color: #f59e0b !important; }
+    .fire-lv2 { animation: burn-red 1.5s infinite ease-in-out; border-color: #ef4444 !important; }
+    .fire-lv3 { animation: burn-blue 1s infinite ease-in-out; border-color: #3b82f6 !important; }
+    .fire-lv4 { animation: burn-purple 0.8s infinite ease-in-out; border-color: #a855f7 !important; }
+
+    /* 抢答按钮特效 */
+    .buzzer-btn {
+      transition: all 0.1s;
+      position: relative;
+      overflow: hidden;
+    }
+    .buzzer-btn:active { transform: scale(0.95); }
+    .buzzer-btn::after {
+      content: '';
+      position: absolute;
+      top: -50%; left: -50%; width: 200%; height: 200%;
+      background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 60%);
+      opacity: 0;
+      transform: scale(0.5);
+      transition: opacity 0.3s, transform 0.3s;
+    }
+    .buzzer-btn:active::after { opacity: 1; transform: scale(1); }
+
+    /* 选项样式 */
+    .option-card {
+      transition: all 0.2s;
+    }
+    .option-card:hover { background: rgba(255,255,255,0.1); }
+    .option-card.selected-correct { background: #059669 !important; border-color: #34d399 !important; }
+    .option-card.selected-wrong { background: #b91c1c !important; border-color: #f87171 !important; }
+    
+    /* 滚动条 */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+
+    /* 抽签动画样式 */
+    .slot-rolling {
+      color: #fbbf24;
+      text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+    }
+    .slot-set {
+      animation: flash-green 0.5s ease-out;
+    }
+    
+    /* 排行榜前三名浮动动画 */
+    .rank-1 { animation: float 3s ease-in-out infinite; }
+    .rank-2 { animation: float 4s ease-in-out infinite 0.5s; }
+    .rank-3 { animation: float 5s ease-in-out infinite 1s; }
+    
+    /* 剩余学号池网格动画 */
+    .pool-grid-item { transition: all 0.3s; }
+    .pool-grid-item-exit { transform: scale(0); opacity: 0; }
+    
+    /* Glitch Text Effect for Boss */
+    .glitch {
+      position: relative;
+    }
+    .glitch::before, .glitch::after {
+      content: attr(data-text);
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+    }
+    .glitch::before {
+      left: 2px;
+      text-shadow: -1px 0 red;
+      clip: rect(24px, 550px, 90px, 0);
+      animation: glitch-anim-1 2.5s infinite linear alternate-reverse;
+    }
+    .glitch::after {
+      left: -2px;
+      text-shadow: -1px 0 blue;
+      clip: rect(85px, 550px, 140px, 0);
+      animation: glitch-anim-2 3s infinite linear alternate-reverse;
+    }
+    @keyframes glitch-anim-1 {
+      0% { clip: rect(20px, 9999px, 10px, 0); }
+      100% { clip: rect(80px, 9999px, 100px, 0); }
+    }
+    @keyframes glitch-anim-2 {
+      0% { clip: rect(100px, 9999px, 20px, 0); }
+      100% { clip: rect(10px, 9999px, 80px, 0); }
+    }
+  </style>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useLayoutEffect, useMemo } = React;
+
+    // ==========================================
+    // 配置：资源路径 (本地化准备)
+    // ==========================================
+    // 隐藏BOSS头像路径：请在本地建立assets文件夹，放入 donk.jpg
+    const BOSS_IMG_SRC = "./assets/donk.jpg"; 
+    // 备用在线BOSS头像 (Donk Team Spirit)
+    const BOSS_IMG_FALLBACK = "https://img.redbull.com/images/c_limit,w_1500,h_1000,f_auto,q_auto/redbullcom/2024/2/12/c4f1g8u6k4j5x8z3q2w1/team-spirit-donk";
+
+    // 隐藏BOSS音乐路径：请在本地建立assets文件夹，放入 boss_music.mp3
+    const BOSS_AUDIO_SRC = "./assets/boss_music.mp3";
+    // 备用在线Phonk音乐 (Aggressive Drift Phonk)
+    const BOSS_AUDIO_FALLBACK = "https://files.freemusicarchive.org/storage-freemusicarchive-org/music/no_curator/KieLoKaz/Free_Ganxta_Phonk_Tracks/KieLoKaz_-_01_-_Reunion_of_the_Ghosts_ID_359.mp3";
+
+    // ==========================================
+    // 1. 图标与组件
+    // ==========================================
+    const Icons = {
+      Trophy: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>,
+      Zap: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+      Users: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+      RotateCcw: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>,
+      Swords: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" x2="19" y1="19" y2="13"/><line x1="16" x2="20" y1="16" y2="20"/><line x1="19" x2="21" y1="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" x2="9" y1="14" y2="18"/><line x1="7" x2="4" y1="17" y2="20"/><line x1="3" x2="5" y1="19" y2="21"/></svg>,
+      Clock: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+      Dice: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/><path d="M12 12h.01"/></svg>,
+      Crown: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>,
+      LogOut: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>,
+      Medal: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="17" r="5"/><path d="M12 17v-5"/><path d="M9 2 9 7"/><path d="M15 2 15 7"/><path d="M15 7 12 11 9 7"/></svg>,
+      ArrowRight: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>,
+      Trash: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>,
+      Music: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>,
+      MusicOff: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M9 9v3.15a4 4 0 1 1-2.38-1.55"/><path d="M9 5l7-1.17V9"/><path d="M23 18a4 4 0 0 1-4 4"/></svg>,
+      Skip: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 4 15 12 5 20 5 4" /><line x1="19" y1="5" x2="19" y2="19" /></svg>,
+      Flame: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.1.2-2.2.5-3.3a9 9 0 0 0 4 6.5a1 1 0 0 0 .5-3.2"/></svg>,
+      ChevronDown: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>,
+      Lock: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    };
+
+    // 卡通头像组件 (支持根据ID自动配色，Boss模式下可替换为图片)
+    const CartoonAvatar = ({ rank, id, size = "w-16 h-16", className="", isBoss = false }) => {
+      const getColors = () => {
+        if (rank === 1) return ["#FCD34D", "#F59E0B"]; // 金
+        if (rank === 2) return ["#E2E8F0", "#94A3B8"]; // 银
+        if (rank === 3) return ["#FDBA74", "#C2410C"]; // 铜
+        
+        if (!id) return ["#475569", "#1e293b"]; // 默认深灰
+        
+        const hash = String(id).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        const palettes = [
+          ["#fca5a5", "#b91c1c"], // 红
+          ["#fdba74", "#c2410c"], // 橙
+          ["#fde047", "#a16207"], // 黄
+          ["#86efac", "#15803d"], // 绿
+          ["#67e8f9", "#0e7490"], // 青
+          ["#93c5fd", "#1d4ed8"], // 蓝
+          ["#c4b5fd", "#7c3aed"], // 紫
+          ["#f9a8d4", "#be185d"], // 粉
+        ];
+        return palettes[hash % palettes.length];
+      };
+
+      const colors = getColors();
+
+      if (isBoss) {
+        return (
+           <div className={`${size} ${className} rounded-full overflow-hidden border-4 border-red-600 shadow-[0_0_30px_red] relative bg-black transition-all group`}>
+             <img src={BOSS_IMG_SRC} onError={(e) => e.target.src = BOSS_IMG_FALLBACK} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="BOSS" />
+             <div className="absolute inset-0 bg-red-900/20 mix-blend-overlay animate-pulse"></div>
+           </div>
+        );
+      }
+
+      return (
+        <div className={`${size} ${className} rounded-full overflow-hidden border-2 shadow-sm flex items-center justify-center relative bg-white transition-all`} style={{ borderColor: colors[1] }}>
+           <svg viewBox="0 0 100 100" className="w-full h-full">
+             <path d="M20 90 Q50 100 80 90 L80 100 L20 100 Z" fill={colors[1]} />
+             <circle cx="50" cy="50" r="35" fill="#FFE4C4" />
+             <circle cx="40" cy="45" r="4" fill="#333" />
+             <circle cx="60" cy="45" r="4" fill="#333" />
+             <path d="M40 60 Q50 70 60 60" stroke="#333" strokeWidth="3" fill="none" />
+             {(rank === 1) && <path d="M30 30 L40 10 L50 30 L60 10 L70 30 Z" fill="#FBBF24" stroke="#B45309" strokeWidth="2"/>}
+           </svg>
+           {rank <= 3 && rank > 0 && (
+             <div className="absolute -bottom-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-xs border border-white shadow-sm" style={{backgroundColor: colors[1]}}>
+               {rank}
+             </div>
+           )}
+        </div>
+      );
+    };
+
+    // ==========================================
+    // 2. 题库数据
+    // ==========================================
+    const RAW_QUESTIONS = [
+      {"id":1,"question":"遥控系统包括（　　）。","options":[{"letter":"A","text":"遥控器"},{"letter":"B","text":"接收机"},{"letter":"C","text":"执行器"},{"letter":"D","text":"以上所有"}],"answer":"D"},
+      {"id":2,"question":"自制一个多旋翼无人机，应该选择（　　）遥控器。","options":[{"letter":"A","text":"通用型"},{"letter":"B","text":"专用型"},{"letter":"C","text":"自制"}],"answer":"A"},
+      {"id":3,"question":"大疆品牌的无人机使用的是（　　）遥控器。","options":[{"letter":"A","text":"通用型"},{"letter":"B","text":"专用型"},{"letter":"C","text":"多旋翼型"}],"answer":"B"},
+      {"id":4,"question":"遥控器的两个摇杆能够控制（　　）个通道。","options":[{"letter":"A","text":"2"},{"letter":"B","text":"4"},{"letter":"C","text":"6"},{"letter":"D","text":"8"}],"answer":"B"},
+      {"id":5,"question":"左手油门的遥控器又称作（    ）。","options":[{"letter":"A","text":"美国手"},{"letter":"B","text":"反美国手"},{"letter":"C","text":"日本手"},{"letter":"D","text":"反日本手"}],"answer":"A"},
+      {"id":6,"question":"回中型油门杆的遥控器特别适合（    ）无人机。","options":[{"letter":"A","text":"固定翼"},{"letter":"B","text":"多旋翼"},{"letter":"C","text":"有定高功能的多旋翼"},{"letter":"D","text":"直升机"}],"answer":"C"},
+      {"id":7,"question":"油门通道信号属于（    ）信号。","options":[{"letter":"A","text":"模拟"},{"letter":"B","text":"开关"},{"letter":"C","text":"不确定"}],"answer":"A"},
+      {"id":8,"question":"起落架收放通道信号属于（    ）信号。","options":[{"letter":"A","text":"模拟"},{"letter":"B","text":"开关"},{"letter":"C","text":"不确定"}],"answer":"B"},
+      {"id":9,"question":"9通道遥控器和4通道的接收机配对使用，可以使用的通道是（    ）个。","options":[{"letter":"A","text":"9"},{"letter":"B","text":"4"},{"letter":"C","text":"13"},{"letter":"D","text":"5"}],"answer":"B"},
+      {"id":10,"question":"遥控器的分辨率是4096，接收机的分辨率是2048，执行器的分辨率是1024，那么这个遥控系统的分辨率是（    ）。","options":[{"letter":"A","text":"4096"},{"letter":"B","text":"2048"},{"letter":"C","text":"1024"}],"answer":"C"},
+      {"id":11,"question":"辅助通道可以用来对无人机（    ）进行控制。","options":[{"letter":"A","text":"收放起落架"},{"letter":"B","text":"收放襟翼"},{"letter":"C","text":"一键返航"},{"letter":"D","text":"以上都是"}],"answer":"D"},
+      {"id":12,"question":"（    ）频段的电波类似于光的直射，绕射性较差，所以遥控器和接收机之间最好不要有物体遮挡。","options":[{"letter":"A","text":"27MHz"},{"letter":"B","text":"4OMHz"},{"letter":"C","text":"72MHz"},{"letter":"D","text":"2.4GHz"}],"answer":"D"},
+      {"id":13,"question":"我国无线电遥控器可以使用(1) 27MHz、(2) 40MHz、(3 )72MHz和(4）2.4GHz共四个频段，其中无人机可以使用（    ）频段。","options":[{"letter":"A","text":"（2）和（3）"},{"letter":"B","text":"（3）和（4）"},{"letter":"C","text":"（1）和（3）"},{"letter":"D","text":"（2）和（4）"}],"answer":"B"},
+      {"id":14,"question":"2.4GHz频段的无线电波属于（    ）的范围。","options":[{"letter":"A","text":"长波"},{"letter":"B","text":"中波"},{"letter":"C","text":"短波"},{"letter":"D","text":"微波"}],"answer":"D"},
+      {"id":15,"question":"在PPM信号中，每发送一帧的时间20ms，那么每秒的数据更新（    ）次。","options":[{"letter":"A","text":"20"},{"letter":"B","text":"50"},{"letter":"C","text":"200"},{"letter":"D","text":"500"}],"answer":"B"},
+      {"id":16,"question":"PPM和PCM编码调制方式中，（    ）的可靠性和抗干扰性最好。","options":[{"letter":"A","text":"PPM"},{"letter":"B","text":"PCM"},{"letter":"C","text":"两者都好"},{"letter":"D","text":"都不好"}],"answer":"B"},
+      {"id":17,"question":"S.BUS使用（    ）串口的硬件协议作为自己的硬件运行基础。","options":[{"letter":"A","text":"RS232C"},{"letter":"B","text":"RS422"},{"letter":"C","text":"RS485"}],"answer":"A"},
+      {"id":18,"question":"PPM、PCM是指遥控器的（   ）方式。","options":[{"letter":"A","text":"高频信号调制"},{"letter":"B","text":"接收信号输出"},{"letter":"C","text":"信号编码"}],"answer":"C"},
+      {"id": 19, "question": "在遥控技术领域中，通道是指一路(    )的信号", "options": [{"letter": "A", "text": "相关"}, {"letter": "B", "text": "独立"}, {"letter": "C", "text": "影响"}], "answer": "B"}, 
+      {"id": 20, "question": "开关信号通道具有（   ）种状态。", "options": [{"letter": "A", "text": "一"}, {"letter": "B", "text": "二"}, {"letter": "C", "text": "三"}, {"letter": "D", "text": "无数"}], "answer": "B"}, 
+      {"id": 21, "question": "遥控器的分辨率可以为（   ）。", "options": [{"letter": "A", "text": "1000"}, {"letter": "B", "text": "2000"}, {"letter": "C", "text": "2048"}, {"letter": "D", "text": "2050"}], "answer": "C"}, 
+      {"id": 22, "question": "在遥控器、接收机、执行器组成的系统中，系统的分辨率由其中的（   ）决定。", "options": [{"letter": "A", "text": "最低值"}, {"letter": "B", "text": "平均值"}, {"letter": "C", "text": "最高值"}], "answer": "A"}, 
+      {"id": 23, "question": "遥控器辅助通道可以对无人机进行（   ）控制。", "options": [{"letter": "A", "text": "收放起落架"}, {"letter": "B", "text": "收放襟翼"}, {"letter": "C", "text": "一键返航"}, {"letter": "D", "text": "以上都是"}], "answer": "D"}, 
+      {"id": 24, "question": "在使用遥控器时，遥控器的天线应该（   ）放置。", "options": [{"letter": "A", "text": "平行于地面"}, {"letter": "B", "text": "垂直地面向上"}, {"letter": "C", "text": "垂直地面向下"}], "answer": "B"}, 
+      {"id": 25, "question": "如果接收机是双天线系统，应当把两条天线放置成（   ）方向。", "options": [{"letter": "A", "text": "45°"}, {"letter": "B", "text": "60°"}, {"letter": "C", "text": "90°"}], "answer": "C"}, 
+      {"id": 26, "question": "通过脉冲的宽度来决定执行器输出大小的信号称作为（   ）信号。", "options": [{"letter": "A", "text": "PWM"}, {"letter": "B", "text": "PPM"}, {"letter": "C", "text": "PCM"}], "answer": "A"}, 
+      {"id": 27, "question": "将多个输出信号的脉冲宽度转变为1个宽度长短不一的脉冲序列串，这个过程叫信号的（   ）。", "options": [{"letter": "A", "text": "调节"}, {"letter": "B", "text": "调制"}, {"letter": "C", "text": "解调"}], "answer": "B"}, 
+      {"id": 28, "question": "（    ）信号是采用模数转换技术，通过微处理器把所有的通道数据进行编码并发送。", "options": [{"letter": "A", "text": "PWM"}, {"letter": "B", "text": "PPM"}, {"letter": "C", "text": "PCM"}], "answer": "C"}, 
+      {"id": 29, "question": "右手油门的遥控器又称作（    ）。", "options": [{"letter": "A", "text": "美国手"}, {"letter": "B", "text": "反美国手"}, {"letter": "C", "text": "日本手"}, {"letter": "D", "text": "反日本手"}], "answer": "B"}, 
+      {"id": 30, "question": "S.BUS接收机又称（    ），它把所有通道的信号，以数据的形式，通过串行总线输入到飞控系统中。", "options": [{"letter": "A", "text": "多频接收机"}, {"letter": "B", "text": "多通道接收机"}, {"letter": "C", "text": "总线接收机"}], "answer": "C"}, 
+      {"id": 31, "question": "舵机的三根线中，红线通常连接（    ）。", "options": [{"letter": "A", "text": "信号线"}, {"letter": "B", "text": "电源正极"}, {"letter": "C", "text": "电源负极"}, {"letter": "D", "text": "屏蔽层"}], "answer": "B"},
+      {"id": 32, "question": "控制舵机转动角度的信号是（    ）。", "options": [{"letter": "A", "text": "PWM脉宽信号"}, {"letter": "B", "text": "电压大小"}, {"letter": "C", "text": "电流大小"}, {"letter": "D", "text": "频率变化"}], "answer": "A"},
+      {"id": 33, "question": "标准模拟舵机的PWM信号周期一般是（    ）。", "options": [{"letter": "A", "text": "10ms"}, {"letter": "B", "text": "20ms"}, {"letter": "C", "text": "50ms"}, {"letter": "D", "text": "100ms"}], "answer": "B"},
+      {"id": 34, "question": "舵机标称的“扭矩”单位通常是（    ）。", "options": [{"letter": "A", "text": "kg·cm"}, {"letter": "B", "text": "N·m/s"}, {"letter": "C", "text": "RPM"}, {"letter": "D", "text": "Watts"}], "answer": "A"},
+      {"id": 35, "question": "锂聚合物电池（LiPo）的单片电芯标称电压是（    ）。", "options": [{"letter": "A", "text": "1.2V"}, {"letter": "B", "text": "1.5V"}, {"letter": "C", "text": "3.3V"}, {"letter": "D", "text": "3.7V"}], "answer": "D"},
+      {"id": 36, "question": "一块3S锂电池在充满电时的电压理论上应达到（    ）。", "options": [{"letter": "A", "text": "11.1V"}, {"letter": "B", "text": "12.6V"}, {"letter": "C", "text": "14.8V"}, {"letter": "D", "text": "10.5V"}], "answer": "B"},
+      {"id": 37, "question": "电池参数“2200mAh 25C”中的“C”代表（    ）。", "options": [{"letter": "A", "text": "容量单位"}, {"letter": "B", "text": "充电电压"}, {"letter": "C", "text": "放电倍率"}, {"letter": "D", "text": "循环次数"}], "answer": "C"},
+      {"id": 38, "question": "如果锂电池发生鼓包，正确的处理方式是（    ）。", "options": [{"letter": "A", "text": "用针刺破放气"}, {"letter": "B", "text": "继续小心使用"}, {"letter": "C", "text": "压扁后使用"}, {"letter": "D", "text": "停止使用并妥善回收"}], "answer": "D"},
+      {"id": 39, "question": "为了延长锂电池寿命，长期存放时单片电压最好保持在（    ）左右。", "options": [{"letter": "A", "text": "3.00V"}, {"letter": "B", "text": "3.80V"}, {"letter": "C", "text": "4.20V"}, {"letter": "D", "text": "4.35V"}], "answer": "B"},
+      {"id": 40, "question": "数字舵机相比模拟舵机，主要优势在于（    ）。", "options": [{"letter": "A", "text": "价格更便宜"}, {"letter": "B", "text": "重量更轻"}, {"letter": "C", "text": "反应速度和锁力更强"}, {"letter": "D", "text": "结构更简单"}], "answer": "C"},
+      {"id": 41, "question": "锂电池充电时，必须使用的模式是（    ）。", "options": [{"letter": "A", "text": "恒压充电"}, {"letter": "B", "text": "恒流充电"}, {"letter": "C", "text": "先恒流后恒压"}, {"letter": "D", "text": "脉冲充电"}], "answer": "C"},
+      {"id": 42, "question": "6S锂电池的平衡充接口通常有（    ）。", "options": [{"letter": "A", "text": "5"}, {"letter": "B", "text": "6"}, {"letter": "C", "text": "7"}, {"letter": "D", "text": "8"}], "answer": "C"},
+      {"id": 43, "question": "无刷电机的KV值越高，通常意味着（    ）。", "options": [{"letter": "A", "text": "扭力越大，转速越低"}, {"letter": "B", "text": "扭力越小，转速越高"}, {"letter": "C", "text": "电压越高"}, {"letter": "D", "text": "电流越小"}], "answer": "B"},
+      {"id": 44, "question": "舵机出现“扫齿”现象，通常是因为（    ）。", "options": [{"letter": "A", "text": "信号干扰"}, {"letter": "B", "text": "电压过低"}, {"letter": "C", "text": "齿轮承受过大外力导致崩裂"}, {"letter": "D", "text": "接线反了"}], "answer": "C"},
+      {"id": 45, "question": "关于电池安全，以下做法错误的是（    ）。", "options": [{"letter": "A", "text": "使用专用充电器"}, {"letter": "B", "text": "充电时有人看管"}, {"letter": "C", "text": "将电池充满电长期存放"}, {"letter": "D", "text": "避免电池短路"}], "answer": "C"}
+    ];
+
+    // ==========================================
+    // 3. 工具函数
+    // ==========================================
+    const shuffleArray = (array) => {
+      const newArray = [...array];
+      for (let i = newArray.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+      }
+      return newArray;
+    };
+
+    const generateStudentIDs = (count) => {
+      return Array.from({length: count}, (_, i) => {
+        const id = i + 1;
+        return id < 10 ? `0${id}` : `${id}`;
+      });
+    };
+    
+    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+    
+    // 背景音乐播放列表 (Atmospheric / Tech House style)
+    const BGM_PLAYLIST = [
+       "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", // Tech Groove
+       "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-16.mp3", // Deep Electronic
+       "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3",  // Steady Beat
+       "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3" // Atmospheric
+    ];
+
+    // ==========================================
+    // 4. 组件：设置界面
+    // ==========================================
+    const SetupView = ({ onStart, onLeaderboard, classNum, setClassNum }) => {
+      const [classSize, setClassSize] = useState(54);
+
+      const handleStart = (mode) => {
+        const students = generateStudentIDs(classSize);
+        onStart(mode, students);
+      };
+
+      return (
+        <div className="flex flex-col items-center justify-center min-h-screen p-4 animate-[fade-in_0.5s]">
+          <div className="text-center mb-10">
+            <div className="inline-block p-6 rounded-full bg-slate-800/50 border border-yellow-500/30 shadow-[0_0_40px_rgba(234,179,8,0.2)] mb-6">
+               <Icons.Zap size={64} className="text-yellow-400 w-16 h-16" />
+            </div>
+            <h1 className="text-5xl font-black text-white mb-2 tracking-tight">
+              无人机设备基础
+            </h1>
+            <p className="text-xl text-indigo-200">中职专业课 • 抢答对决系统</p>
+          </div>
+
+          <div className="glass-panel p-8 rounded-2xl w-full max-w-lg space-y-8">
+            <div className="space-y-4">
+              <label className="text-sm font-bold text-indigo-300 uppercase tracking-wider">班级设置 / Class Setup</label>
+              <div className="grid grid-cols-2 gap-4">
+                <button 
+                  onClick={() => setClassNum(1)}
+                  className={`p-4 rounded-xl border-2 transition-all ${classNum === 1 ? 'bg-indigo-600 border-indigo-400 text-white' : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-indigo-500'}`}
+                >
+                  <div className="text-2xl font-bold">1班</div>
+                  <div className="text-xs opacity-70">无人机应用技术</div>
+                </button>
+                <button 
+                  onClick={() => setClassNum(2)}
+                  className={`p-4 rounded-xl border-2 transition-all ${classNum === 2 ? 'bg-indigo-600 border-indigo-400 text-white' : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-indigo-500'}`}
+                >
+                  <div className="text-2xl font-bold">2班</div>
+                  <div className="text-xs opacity-70">无人机应用技术</div>
+                </button>
+              </div>
+              
+              <div className="flex items-center gap-4 bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+                <span className="text-slate-300">班级人数:</span>
+                <input 
+                  type="number" 
+                  value={classSize} 
+                  onChange={(e) => setClassSize(Math.max(1, parseInt(e.target.value) || 0))}
+                  className="bg-transparent border-b border-slate-500 w-20 text-center text-white focus:outline-none focus:border-yellow-400 font-mono text-lg"
+                />
+                <span className="text-xs text-slate-500 ml-auto">用于学号抽签</span>
+              </div>
+            </div>
+
+            <div className="space-y-3 pt-4 border-t border-slate-700">
+              <button 
+                onClick={() => handleStart('select-players')}
+                className="w-full py-4 bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-white rounded-xl font-bold text-xl shadow-lg shadow-yellow-900/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                <Icons.Swords className="w-6 h-6" /> 进入抢答模式 (1v1)
+              </button>
+              
+              <button 
+                onClick={() => handleStart('king-mode')}
+                className="w-full py-4 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 text-white rounded-xl font-bold text-xl shadow-lg shadow-red-900/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                <Icons.Flame className="w-5 h-5" /> 擂台连胜挑战
+              </button>
+              
+              <button 
+                onClick={() => handleStart('tournament')}
+                className="w-full py-4 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-xl font-bold text-xl transition-all flex items-center justify-center gap-2"
+              >
+                <Icons.Trophy className="w-5 h-5" /> 进入淘汰赛模式
+              </button>
+              
+              <button 
+                onClick={onLeaderboard}
+                className="w-full py-4 mt-4 border border-indigo-500/30 bg-indigo-900/20 text-indigo-300 hover:bg-indigo-900/40 rounded-xl font-bold text-xl transition-all flex items-center justify-center gap-2"
+              >
+                <Icons.Medal className="w-5 h-5" /> 查看胜率英雄榜
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // ==========================================
+    // 5. 组件：自定义下拉选择器
+    // ==========================================
+    const CustomSelect = ({ value, onChange, options, placeholder, colorClass }) => {
+      const [isOpen, setIsOpen] = useState(false);
+      const containerRef = useRef(null);
+
+      useEffect(() => {
+        const handleClickOutside = (event) => {
+          if (containerRef.current && !containerRef.current.contains(event.target)) {
+            setIsOpen(false);
+          }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+      }, []);
+
+      return (
+        <div className="relative flex-1" ref={containerRef}>
+          <button 
+            onClick={() => setIsOpen(!isOpen)}
+            className={`w-full text-left bg-slate-800 border border-slate-600 rounded-lg p-3 text-white flex justify-between items-center transition-all ${colorClass} ${isOpen ? 'ring-2' : ''}`}
+          >
+            <span className="font-mono font-bold text-lg">{value ? `${value} 号` : placeholder}</span>
+            <Icons.ChevronDown className={`w-5 h-5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+          </button>
+          
+          {isOpen && (
+            <div className="absolute top-full left-0 w-full mt-2 bg-slate-900 border border-slate-600 rounded-xl shadow-2xl z-50 max-h-60 overflow-y-auto animate-[pop-in_0.1s_ease-out]">
+               <div className="grid grid-cols-3 gap-1 p-2">
+                   {options.map(opt => (
+                     <button 
+                        key={opt}
+                        onClick={() => { onChange(opt); setIsOpen(false); }}
+                        className={`p-3 rounded-lg hover:bg-slate-700 font-mono font-bold transition-colors text-center ${value === opt ? 'bg-slate-700 text-white' : 'text-slate-400'}`}
+                     >
+                        {opt}
+                     </button>
+                   ))}
+               </div>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    // ==========================================
+    // 5.1 组件：1v1 选人界面
+    // ==========================================
+    const PlayerSelection = ({ students, onConfirm, onBack }) => {
+       const [p1, setP1] = useState('');
+       const [p2, setP2] = useState('');
+
+       const handleRandom = () => {
+         const shuffled = shuffleArray([...students]);
+         setP1(shuffled[0]);
+         setP2(shuffled[1]);
+       };
+
+       const handleStart = () => {
+         if (p1 && p2 && p1 !== p2) {
+           onConfirm(p1, p2);
+         } else {
+           alert("请选择两名不同的选手！");
+         }
+       };
+
+       return (
+         <div className="flex flex-col items-center justify-center min-h-screen p-4 animate-[fade-in_0.5s]">
+           <div className="glass-panel p-8 rounded-2xl w-full max-w-md space-y-8 relative">
+             <button onClick={onBack} className="absolute top-4 left-4 text-slate-400 hover:text-white"><Icons.RotateCcw className="w-6 h-6"/></button>
+             <h2 className="text-2xl font-bold text-center text-white mb-6">选择对决选手</h2>
+             
+             <div className="space-y-6">
+               <div className="flex items-center gap-4 relative z-20">
+                 <div className="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center font-bold text-lg shadow-lg shrink-0">P1</div>
+                 <CustomSelect 
+                    value={p1}
+                    onChange={setP1}
+                    options={students}
+                    placeholder="选择选手..."
+                    colorClass="focus:ring-indigo-500 hover:border-indigo-500"
+                 />
+               </div>
+
+               <div className="flex items-center justify-center">
+                 <span className="text-slate-500 font-bold text-xl">VS</span>
+               </div>
+
+               <div className="flex items-center gap-4 relative z-10">
+                 <div className="w-12 h-12 bg-pink-600 rounded-full flex items-center justify-center font-bold text-lg shadow-lg shrink-0">P2</div>
+                 <CustomSelect 
+                    value={p2}
+                    onChange={setP2}
+                    options={students}
+                    placeholder="选择选手..."
+                    colorClass="focus:ring-pink-500 hover:border-pink-500"
+                 />
+               </div>
+             </div>
+
+             <div className="pt-4 flex gap-3 relative z-0">
+               <button 
+                 onClick={handleRandom}
+                 className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-xl font-medium"
+               >
+                 <Icons.Dice className="w-5 h-5 inline mr-2"/> 随机生成
+               </button>
+               <button 
+                 onClick={handleStart}
+                 className="flex-[2] py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl font-bold shadow-lg shadow-indigo-900/20"
+               >
+                 开始对决
+               </button>
+             </div>
+           </div>
+         </div>
+       );
+    };
+
+    // ==========================================
+    // 6. 组件：排行榜
+    // ==========================================
+    const Leaderboard = ({ stats, onBack, currentClass, onClassChange, onClearStats }) => {
+      const [showClearConfirm, setShowClearConfirm] = useState(false);
+      
+      const sortedStats = Object.entries(stats)
+        .sort(([, winsA], [, winsB]) => winsB - winsA)
+        .slice(0, 10); // Top 10
+
+      const handleClear = () => {
+        onClearStats();
+        setShowClearConfirm(false);
+      };
+
+      return (
+        <div className="min-h-screen p-4 flex flex-col items-center justify-center">
+          {/* 清空确认弹窗 */}
+          {showClearConfirm && (
+             <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm animate-[fade-in_0.2s]">
+                <div className="glass-panel p-6 rounded-2xl w-full max-w-sm text-center border border-red-500/30">
+                   <div className="w-14 h-14 bg-red-500/20 text-red-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Icons.Trash className="w-8 h-8"/>
+                   </div>
+                   <h3 className="text-xl font-bold text-white mb-2">确定清空记录?</h3>
+                   <p className="text-slate-400 mb-6">您将删除 <span className="text-yellow-400 font-bold">{currentClass}班</span> 的所有胜率数据，此操作不可恢复。</p>
+                   <div className="flex gap-3">
+                      <button onClick={() => setShowClearConfirm(false)} className="flex-1 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg">取消</button>
+                      <button onClick={handleClear} className="flex-1 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-bold">确认清空</button>
+                   </div>
+                </div>
+             </div>
+          )}
+
+          <div className="glass-panel w-full max-w-4xl rounded-3xl p-8 relative max-h-[90vh] overflow-hidden flex flex-col">
+            <button onClick={onBack} className="absolute top-6 left-6 p-2 bg-slate-800 rounded-full hover:bg-slate-700 transition-colors z-10">
+              <Icons.RotateCcw className="w-6 h-6 text-slate-300" />
+            </button>
+            
+            {/* 班级切换Tabs */}
+            <div className="absolute top-6 right-6 flex bg-slate-800 rounded-full p-1 border border-slate-700 z-10">
+              <button 
+                onClick={() => onClassChange(1)}
+                className={`px-4 py-1.5 rounded-full text-sm font-bold transition-all ${currentClass === 1 ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}
+              >
+                1班
+              </button>
+              <button 
+                onClick={() => onClassChange(2)}
+                className={`px-4 py-1.5 rounded-full text-sm font-bold transition-all ${currentClass === 2 ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}
+              >
+                2班
+              </button>
+            </div>
+            
+            <div className="text-center mb-8 pt-4">
+              <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-600 inline-flex items-center gap-3">
+                <Icons.Crown className="w-10 h-10 text-yellow-500" /> {currentClass}班 英雄榜
+              </h2>
+              <p className="text-indigo-200 mt-2">荣耀属于最强的大脑</p>
+            </div>
+
+            {/* Top 3 Podium */}
+            <div className="flex justify-center items-end gap-4 md:gap-8 mb-12 min-h-[200px]">
+              {/* 2nd Place */}
+              {sortedStats[1] && (
+                <div className="flex flex-col items-center rank-2">
+                  <CartoonAvatar rank={2} id={sortedStats[1][0]} />
+                  <div className="mt-2 text-xl font-bold text-slate-300">{sortedStats[1][0]}号</div>
+                  <div className="bg-slate-400 w-20 md:w-24 h-24 rounded-t-lg flex items-center justify-center text-slate-800 font-black text-2xl shadow-lg relative">
+                     <div className="text-xs absolute bottom-2">银牌</div>
+                     {sortedStats[1][1]}胜
+                  </div>
+                </div>
+              )}
+              
+              {/* 1st Place */}
+              {sortedStats[0] && (
+                <div className="flex flex-col items-center rank-1 z-10 -mx-2">
+                   <div className="relative">
+                      <Icons.Crown className="absolute -top-8 left-1/2 -translate-x-1/2 w-10 h-10 text-yellow-400 animate-bounce" />
+                      <CartoonAvatar rank={1} id={sortedStats[0][0]} size="w-24 h-24" />
+                   </div>
+                  <div className="mt-2 text-2xl font-bold text-yellow-300">{sortedStats[0][0]}号</div>
+                  <div className="bg-yellow-400 w-24 md:w-32 h-32 rounded-t-lg flex items-center justify-center text-yellow-900 font-black text-4xl shadow-xl shadow-yellow-500/20 relative">
+                     <div className="text-sm absolute bottom-4 font-bold">冠军</div>
+                     {sortedStats[0][1]}胜
+                  </div>
+                </div>
+              )}
+
+              {/* 3rd Place */}
+              {sortedStats[2] && (
+                <div className="flex flex-col items-center rank-3">
+                  <CartoonAvatar rank={3} id={sortedStats[2][0]} />
+                  <div className="mt-2 text-xl font-bold text-orange-300">{sortedStats[2][0]}号</div>
+                  <div className="bg-orange-400 w-20 md:w-24 h-16 rounded-t-lg flex items-center justify-center text-orange-900 font-black text-2xl shadow-lg relative">
+                     <div className="text-xs absolute bottom-2">铜牌</div>
+                     {sortedStats[2][1]}胜
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* List for others */}
+            <div className="flex-1 overflow-y-auto pr-2 space-y-3">
+              {sortedStats.slice(3).map(([id, wins], idx) => (
+                <div key={id} className="flex items-center justify-between p-4 bg-slate-800/50 rounded-xl border border-slate-700">
+                  <div className="flex items-center gap-4">
+                    <span className="text-slate-500 font-mono w-6">#{idx + 4}</span>
+                    <CartoonAvatar id={id} size="w-10 h-10" />
+                    <span className="font-bold text-lg">{id} 号同学</span>
+                  </div>
+                  <div className="font-mono text-indigo-300 font-bold">{wins} 胜</div>
+                </div>
+              ))}
+              {sortedStats.length === 0 && <div className="text-center text-slate-500 py-8">暂无数据，快去对决吧！</div>}
+            </div>
+            
+            {/* 底部清空按钮 */}
+            {sortedStats.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-slate-700 flex justify-center">
+                 <button 
+                   onClick={() => setShowClearConfirm(true)}
+                   className="flex items-center gap-2 text-slate-500 hover:text-red-400 transition-colors text-sm px-4 py-2 rounded-lg hover:bg-slate-800/50"
+                 >
+                    <Icons.Trash className="w-4 h-4" /> 清空本班记录
+                 </button>
+              </div>
+            )}
+
+          </div>
+        </div>
+      );
+    };
+
+    // ==========================================
+    // 7. 组件：抢答对决核心逻辑 (BattleArena)
+    // ==========================================
+    const BattleArena = ({ p1, p2, onWinner, onBack, onMatchEnd, mode, isBossMode = false }) => {
+      const [phase, setPhase] = useState('ready'); 
+      const [question, setQuestion] = useState(null);
+      const [scores, setScores] = useState({ p1: 0, p2: 0 });
+      const [buzzedPlayer, setBuzzedPlayer] = useState(null); 
+      const [timer, setTimer] = useState(0);
+      const [selectedOption, setSelectedOption] = useState(null); 
+      const [roundWinner, setRoundWinner] = useState(null);
+      const [matchResult, setMatchResult] = useState(null); 
+      const [showExitDialog, setShowExitDialog] = useState(false);
+      
+      const audioRef = useRef(null);
+      const [isMuted, setIsMuted] = useState(false);
+      const [trackIndex, setTrackIndex] = useState(0);
+
+      // 修改分数逻辑：Boss模式10分，其他模式(包括King)均为5分
+      const WIN_SCORE = isBossMode ? 10 : 5; 
+      const questionBankRef = useRef(shuffleArray([...RAW_QUESTIONS]));
+      const qIndexRef = useRef(0);
+
+      // BGM Setup
+      useEffect(() => {
+         const audio = new Audio(isBossMode ? BOSS_AUDIO_SRC : BGM_PLAYLIST[0]); 
+         audio.volume = 0.3;
+         audioRef.current = audio;
+
+         // 如果是Boss模式，尝试使用备用链接失败处理
+         if (isBossMode) {
+            audio.onerror = () => {
+                console.log("Local Boss Audio not found, using fallback.");
+                audio.src = BOSS_AUDIO_FALLBACK;
+            }
+         }
+
+         const handleEnded = () => {
+             if (!isBossMode) setTrackIndex(prev => (prev + 1) % BGM_PLAYLIST.length);
+             else { audio.currentTime = 0; audio.play(); } // Loop boss music
+         };
+         
+         const handleError = () => {
+             console.log("Audio Error, skipping...");
+             if (!isBossMode) setTrackIndex(prev => (prev + 1) % BGM_PLAYLIST.length);
+         };
+
+         audio.addEventListener('ended', handleEnded);
+         audio.addEventListener('error', handleError);
+
+         return () => {
+            if(audioRef.current) {
+               audioRef.current.pause();
+               audioRef.current.removeEventListener('ended', handleEnded);
+               audioRef.current.removeEventListener('error', handleError);
+               audioRef.current = null;
+            }
+         }
+      }, [isBossMode]);
+
+      useEffect(() => {
+         if(!audioRef.current) return;
+         
+         // Only switch tracks if NOT in boss mode (Boss mode sticks to one track)
+         if (!isBossMode) {
+             audioRef.current.pause();
+             audioRef.current.src = BGM_PLAYLIST[trackIndex];
+             audioRef.current.load();
+         }
+
+         if (!isMuted && (phase === 'ready' || phase === 'fight')) {
+             const playPromise = audioRef.current.play();
+             if (playPromise !== undefined) {
+                 playPromise.catch(error => console.log("Auto-play prevented"));
+             }
+         }
+      }, [trackIndex, isBossMode]);
+
+      useEffect(() => {
+         if(!audioRef.current) return;
+         if (isMuted) {
+             audioRef.current.pause();
+             return;
+         }
+         if (phase === 'ready' || phase === 'fight') {
+             const playPromise = audioRef.current.play();
+             if (playPromise !== undefined) playPromise.catch(console.log);
+         } else {
+             audioRef.current.pause();
+         } 
+      }, [phase, isMuted]);
+
+      const nextRound = () => {
+        if (qIndexRef.current >= questionBankRef.current.length) {
+          qIndexRef.current = 0;
+          questionBankRef.current = shuffleArray([...RAW_QUESTIONS]);
+        }
+        const q = questionBankRef.current[qIndexRef.current];
+        qIndexRef.current++;
+        
+        setQuestion(q);
+        setBuzzedPlayer(null);
+        setSelectedOption(null);
+        setRoundWinner(null);
+        startReadyCountdown();
+      };
+
+      useEffect(() => { nextRound(); }, []);
+
+      useEffect(() => {
+        let interval;
+        if (timer > 0) {
+          interval = setInterval(() => setTimer(t => t - 1), 1000);
+        } else if (timer === 0) {
+          if (phase === 'ready') setPhase('fight');
+          else if (phase === 'answering') handleWrongAnswer(true); 
+        }
+        return () => clearInterval(interval);
+      }, [timer, phase]);
+
+      const startReadyCountdown = () => {
+        setPhase('ready');
+        setTimer(3);
+      };
+
+      const handleBuzz = (player) => {
+        if (phase !== 'fight') return;
+        setBuzzedPlayer(player);
+        setPhase('answering');
+        setTimer(5); 
+      };
+
+      const handleOptionClick = (optionLetter) => {
+        if (phase !== 'answering') return;
+        setSelectedOption(optionLetter);
+        
+        const safeOption = String(optionLetter).trim().toUpperCase();
+        const safeAnswer = String(question.answer).trim().toUpperCase();
+        const isCorrect = safeOption === safeAnswer;
+        
+        if (isCorrect) {
+          const newScores = { ...scores, [buzzedPlayer]: scores[buzzedPlayer] + 1 };
+          setScores(newScores);
+          setRoundWinner(buzzedPlayer);
+          finalizeRound(newScores);
+        } else {
+          const opponent = buzzedPlayer === 'p1' ? 'p2' : 'p1';
+          const newScores = { ...scores, [opponent]: scores[opponent] + 1 };
+          setScores(newScores);
+          setRoundWinner(opponent); 
+          finalizeRound(newScores);
+        }
+      };
+
+      const handleWrongAnswer = (isTimeout) => {
+        const opponent = buzzedPlayer === 'p1' ? 'p2' : 'p1';
+        const newScores = { ...scores, [opponent]: scores[opponent] + 1 };
+        setScores(newScores);
+        setRoundWinner(opponent);
+        setSelectedOption(isTimeout ? 'TIMEOUT' : null);
+        finalizeRound(newScores);
+      };
+
+      const finalizeRound = (currentScores) => {
+        setPhase('result');
+        setTimer(0);
+        
+        if (currentScores.p1 >= WIN_SCORE || currentScores.p2 >= WIN_SCORE) {
+          setTimeout(() => {
+            const winner = currentScores.p1 >= WIN_SCORE ? p1 : p2;
+            setMatchResult({ winner }); 
+          }, 2000);
+        }
+      };
+      
+      const handleVictoryConfirm = () => {
+        if (!matchResult) return;
+        const winner = matchResult.winner;
+        if (onMatchEnd) onMatchEnd(winner); 
+        if (onWinner) onWinner(winner);     
+        onBack();                           
+      };
+
+      const renderOption = (opt) => {
+        let className = `option-card w-full p-4 md:p-5 rounded-xl border text-left text-xl md:text-2xl font-bold mb-4 flex items-center transition-all ${isBossMode ? 'border-red-900 bg-red-950/40' : 'border-slate-600 bg-slate-800/50'} `;
+        if (phase === 'answering') className += "hover:bg-indigo-900/50 cursor-pointer border-indigo-500/50 text-indigo-100";
+        else if (phase === 'result') {
+          const safeOpt = String(opt.letter).trim().toUpperCase();
+          const safeAnswer = String(question.answer).trim().toUpperCase();
+          
+          if (safeOpt === safeAnswer) className += "selected-correct text-white shadow-lg shadow-green-900/50 scale-105 z-10"; 
+          else if (opt.letter === selectedOption) className += "selected-wrong text-white opacity-50"; 
+          else className += "opacity-30 grayscale";
+        } else if (phase === 'fight') className += "opacity-80"; 
+
+        return (
+          <button key={opt.letter} onClick={() => handleOptionClick(opt.letter)} disabled={phase !== 'answering'} className={className}>
+            <span className={`inline-flex items-center justify-center w-10 h-10 rounded-full mr-6 text-lg font-black shrink-0 ${phase === 'result' && String(opt.letter).trim().toUpperCase() === String(question.answer).trim().toUpperCase() ? 'bg-white text-green-600' : 'bg-slate-700 text-slate-300'}`}>{opt.letter}</span>
+            <span className="leading-snug">{opt.text}</span>
+          </button>
+        );
+      };
+
+      if (matchResult) {
+        return (
+          <div className="flex flex-col items-center justify-center h-screen animate-[fade-in_0.5s] relative z-50">
+            <div className={`text-center p-12 glass-panel rounded-3xl border relative ${isBossMode ? 'boss-panel' : 'border-yellow-500/30'}`}>
+               <div className="animate-bounce mb-6 inline-block text-yellow-400"><Icons.Trophy className="w-24 h-24" /></div>
+               <div className="text-2xl text-yellow-200 uppercase tracking-widest mb-4">WINNER</div>
+               <div className="text-8xl font-black bg-clip-text text-transparent bg-gradient-to-b from-yellow-200 to-yellow-600 mb-8">{matchResult.winner} 号</div>
+               <button onClick={handleVictoryConfirm} className="px-10 py-4 bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-500 hover:to-teal-500 text-white rounded-full font-bold text-xl shadow-lg transition-all transform hover:scale-105">结束本局 &rarr;</button>
+            </div>
+          </div>
+        );
+      }
+
+      const ExitDialog = () => (
+        <div className="absolute inset-0 z-[100] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center animate-[fade-in_0.2s]">
+          <div className="bg-slate-800 p-8 rounded-2xl border border-slate-600 shadow-2xl max-w-sm w-full text-center">
+             <div className="mb-6">
+               <div className="w-16 h-16 bg-red-500/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                 <Icons.LogOut className="w-8 h-8"/>
+               </div>
+               <h3 className="text-xl font-bold text-white mb-2">确定退出?</h3>
+               <p className="text-slate-400">当前的比赛进度将会丢失，无法恢复。</p>
+             </div>
+             <div className="flex gap-4">
+               <button onClick={() => setShowExitDialog(false)} className="flex-1 py-3 bg-slate-700 text-slate-200 rounded-xl hover:bg-slate-600 font-medium">取消</button>
+               <button onClick={onBack} className="flex-1 py-3 bg-red-600 text-white rounded-xl hover:bg-red-500 font-bold">退出</button>
+             </div>
+          </div>
+        </div>
+      );
+      
+      const panelClass = isBossMode ? "flex-1 glass-panel rounded-3xl p-8 flex flex-col relative overflow-y-auto pb-4 boss-panel" : "flex-1 glass-panel rounded-3xl p-8 flex flex-col relative overflow-y-auto pb-4";
+
+      return (
+        <div className={`h-screen flex flex-col p-4 max-w-6xl mx-auto overflow-hidden relative ${isBossMode ? 'text-red-100' : ''}`}>
+          {showExitDialog && <ExitDialog />}
+
+          <div className={`flex justify-between items-center bg-slate-900/80 p-4 rounded-2xl border border-slate-800 mb-4 shrink-0 ${isBossMode ? 'border-red-900 bg-black/80' : ''}`}>
+            <div className="flex items-center gap-4 w-1/3">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl shadow-lg border relative overflow-hidden">
+                  {isBossMode && p1 ? <img src={BOSS_IMG_SRC} onError={(e)=>e.target.src=BOSS_IMG_FALLBACK} className="w-full h-full object-cover"/> : <div className="bg-indigo-600 w-full h-full flex items-center justify-center">{p1}</div>}
+              </div>
+              <div className="flex-1">
+                <div className={`text-xs font-bold mb-1 ${isBossMode ? 'text-red-500 glitch' : 'text-indigo-300'}`} data-text={isBossMode ? "BOSS" : ""}>选手 1 {mode === 'king' && "(擂主)"}</div>
+                <div className="h-3 w-full bg-slate-800 rounded-full overflow-hidden"><div className={`h-full transition-all duration-500 ${isBossMode ? 'bg-red-600' : 'bg-indigo-500'}`} style={{width: `${(scores.p1/WIN_SCORE)*100}%`}}></div></div>
+              </div>
+              <div className={`text-3xl font-black ${isBossMode ? 'text-red-500' : 'text-indigo-400'}`}>{scores.p1}</div>
+            </div>
+
+            <div className="text-center w-1/3 flex flex-col items-center">
+              {phase === 'answering' ? <div className="text-4xl font-black text-yellow-400 animate-pulse flex items-center gap-2"><Icons.Clock className="w-8 h-8" /> {timer}s</div> : <div className="text-slate-500 font-mono text-sm tracking-widest">TARGET: {WIN_SCORE} PTS</div>}
+            </div>
+
+            <div className="flex items-center gap-4 w-1/3 flex-row-reverse text-right">
+              <div className="w-12 h-12 bg-pink-600 rounded-xl flex items-center justify-center font-black text-xl shadow-lg shadow-pink-900/50 border border-pink-400">{p2}</div>
+              <div className="flex-1">
+                <div className="text-xs text-pink-300 font-bold mb-1">选手 2 {mode === 'king' && "(挑战者)"}</div>
+                <div className="h-3 w-full bg-slate-800 rounded-full overflow-hidden flex justify-end"><div className="h-full bg-pink-500 transition-all duration-500" style={{width: `${(scores.p2/WIN_SCORE)*100}%`}}></div></div>
+              </div>
+              <div className="text-3xl font-black text-pink-400">{scores.p2}</div>
+            </div>
+          </div>
+
+          <div className="flex-1 flex gap-6 min-h-0 relative">
+            {phase === 'ready' && <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm rounded-3xl animate-[fade-in_0.3s]"><div className="text-[12rem] font-black text-yellow-400 drop-shadow-[0_0_50px_rgba(234,179,8,0.8)] animate-[countdown-pop_1s_infinite]">{timer}</div><div className="absolute bottom-20 text-2xl text-white font-bold tracking-widest uppercase">Ready to Buzz</div></div>}
+
+            <button className={`buzzer-btn w-32 md:w-48 rounded-3xl flex flex-col items-center justify-center gap-4 transition-all duration-300 ${phase === 'fight' ? 'bg-indigo-600 hover:bg-indigo-500 shadow-[0_0_30px_rgba(79,70,229,0.4)] cursor-pointer translate-y-0' : 'bg-slate-800 text-slate-600 cursor-not-allowed grayscale opacity-50'} ${buzzedPlayer === 'p1' ? '!bg-yellow-500 !text-black !opacity-100 !grayscale-0 ring-4 ring-yellow-300 shadow-[0_0_50px_rgba(234,179,8,0.6)] scale-105 z-10' : ''} ${isBossMode && phase === 'fight' ? '!bg-red-800 !hover:bg-red-700' : ''}`} onClick={() => handleBuzz('p1')} disabled={phase !== 'fight'}>
+              <div className="p-4 rounded-full bg-white/20"><Icons.Zap className="w-12 h-12" /></div><span className="text-xl font-bold">抢答!</span><span className="text-xs opacity-60">P1 按钮</span>
+            </button>
+
+            {/* 核心答题区域 */}
+            <div className={panelClass}>
+              <div className="flex justify-between items-start mb-6"><span className="px-3 py-1 bg-slate-700 rounded text-xs text-slate-300">单选题</span><span className="text-slate-500 text-sm">ID: {question?.id}</span></div>
+              <h2 className="text-2xl md:text-3xl font-bold leading-normal mb-8 text-white">{question?.question}</h2>
+              <div className="space-y-2 w-full max-w-2xl mx-auto flex-1">{question?.options.map(opt => renderOption(opt))}</div>
+              
+              {/* 结果覆盖层 */}
+              {phase === 'result' && (
+                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center animate-[fade-in_0.2s] pointer-events-none">
+                   <div className="absolute inset-0 bg-black/20 pointer-events-auto"></div>
+                   <div className="relative z-30 pointer-events-auto text-center transform scale-110">
+                     <div className={`text-6xl mb-4 flex items-center justify-center w-24 h-24 mx-auto rounded-full border-4 shadow-2xl ${roundWinner === buzzedPlayer ? 'text-green-400 border-green-500 bg-slate-900' : 'text-red-400 border-red-500 bg-slate-900'}`}>
+                       {roundWinner === buzzedPlayer ? '✓' : '✕'}
+                     </div>
+                     <button onClick={nextRound} className="px-12 py-5 bg-yellow-500 hover:bg-yellow-400 text-yellow-950 rounded-full font-black text-2xl shadow-[0_0_30px_rgba(234,179,8,0.6)] hover:scale-105 active:scale-95 transition-all flex items-center gap-3 border-4 border-yellow-300">
+                       下一题 <Icons.ArrowRight className="w-8 h-8"/>
+                     </button>
+                   </div>
+                </div>
+              )}
+              
+              <div className="mt-8 pt-6 border-t border-slate-700/50 flex justify-center shrink-0">
+                 <button onClick={() => setShowExitDialog(true)} className="text-slate-500 hover:text-red-400 text-sm flex items-center gap-2 px-4 py-2 rounded hover:bg-slate-800 transition-colors">
+                    <Icons.LogOut className="w-4 h-4" /> 退出对决
+                 </button>
+              </div>
+            </div>
+
+            <button className={`buzzer-btn w-32 md:w-48 rounded-3xl flex flex-col items-center justify-center gap-4 transition-all duration-300 ${phase === 'fight' ? 'bg-pink-600 hover:bg-pink-500 shadow-[0_0_30px_rgba(219,39,119,0.4)] cursor-pointer translate-y-0' : 'bg-slate-800 text-slate-600 cursor-not-allowed grayscale opacity-50'} ${buzzedPlayer === 'p2' ? '!bg-yellow-500 !text-black !opacity-100 !grayscale-0 ring-4 ring-yellow-300 shadow-[0_0_50px_rgba(234,179,8,0.6)] scale-105 z-10' : ''}`} onClick={() => handleBuzz('p2')} disabled={phase !== 'fight'}>
+              <div className="p-4 rounded-full bg-white/20"><Icons.Zap className="w-12 h-12" /></div><span className="text-xl font-bold">抢答!</span><span className="text-xs opacity-60">P2 按钮</span>
+            </button>
+          </div>
+
+          <div className="absolute top-4 left-4 flex gap-2 z-50">
+             <div className="flex gap-1 bg-slate-800 rounded-lg border border-slate-600 overflow-hidden shadow-lg">
+                <button onClick={() => setIsMuted(!isMuted)} className={`flex items-center justify-center w-10 h-10 transition-all ${isMuted ? 'text-slate-500 hover:bg-slate-700' : 'bg-indigo-600 text-white hover:bg-indigo-500'}`}>
+                    {isMuted ? <Icons.MusicOff className="w-5 h-5" /> : <Icons.Music className="w-5 h-5" />}
+                </button>
+                {!isBossMode && (
+                  <button onClick={() => setTrackIndex((trackIndex + 1) % BGM_PLAYLIST.length)} className="flex items-center justify-center w-10 h-10 bg-slate-700 text-slate-200 hover:bg-slate-600 hover:text-white transition-all active:bg-slate-500" title="切歌">
+                      <Icons.Skip className="w-5 h-5" />
+                  </button>
+                )}
+             </div>
+          </div>
+        </div>
+      );
+    };
+
+    // ==========================================
+    // 8. 组件：数字滚动组件
+    // ==========================================
+    const SlotMachineNumber = ({ value, isRolling }) => {
+      const [displayValue, setDisplayValue] = useState(value || "??");
+      useEffect(() => {
+        let interval;
+        if (isRolling) {
+          interval = setInterval(() => {
+            const randomId = Math.floor(Math.random() * 54) + 1;
+            setDisplayValue(randomId < 10 ? `0${randomId}` : `${randomId}`);
+          }, 50);
+        } else setDisplayValue(value || "?");
+        return () => clearInterval(interval);
+      }, [isRolling, value]);
+      return <span className={`${isRolling ? 'slot-rolling' : value ? 'slot-set' : 'text-slate-500'}`}>{displayValue}</span>;
+    };
+
+    // ==========================================
+    // 8.5 组件：对决前介绍动画 (MatchIntro) - 修复布局版
+    // ==========================================
+    const MatchIntro = ({ p1, p2, onStart, p1Label = "Challenger 1", p2Label = "Challenger 2", p1Subtext = null, isBoss = false }) => {
+      useEffect(() => {
+        const timer = setTimeout(onStart, 4000); // 4秒后自动开始
+        return () => clearTimeout(timer);
+      }, [onStart]);
+
+      return (
+        <div className={`fixed inset-0 z-[100] flex items-center justify-center overflow-hidden font-sans select-none ${isBoss ? 'bg-black' : 'bg-slate-950'}`}>
+           {/* 1. 动态背景 (Moving Stripes) */}
+           <div className="absolute inset-0">
+              <div className="absolute inset-0 opacity-10" 
+                   style={{
+                     backgroundImage: 'linear-gradient(45deg, #000 25%, transparent 25%, transparent 50%, #000 50%, #000 75%, transparent 75%, transparent)', 
+                     backgroundSize: '60px 60px',
+                     animation: 'stripes-move 3s linear infinite'
+                   }}>
+              </div>
+              <div className={`absolute inset-0 ${isBoss ? 'bg-[radial-gradient(circle_at_center,rgba(100,0,0,0.2)_0%,#000_100%)]' : 'bg-[radial-gradient(circle_at_center,rgba(30,27,75,0)_0%,#020617_100%)]'}`}></div>
+           </div>
+           
+           {/* 2. 闪电/冲击波背景层 */}
+           <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
+              <div className={`w-full h-full opacity-30 animate-[flash_4s_ease-out_infinite] mix-blend-overlay ${isBoss ? 'bg-red-900/40' : 'bg-indigo-900/20'}`}></div>
+              {/* Shockwave circle on VS impact */}
+              <div className="absolute w-[80vh] h-[80vh] rounded-full border-[40px] border-yellow-500/10 scale-0 animate-[shockwave_0.8s_ease-out_1.2s_forwards]"></div>
+           </div>
+
+           {/* 3. 布局重构：使用绝对定位确保VS在最高层 */}
+           <div className="relative z-10 w-full max-w-7xl h-full flex items-center justify-center px-4">
+              
+              {/* Avatars Container (Grid) - Z-Index 10 - Fixed 2-column center alignment for max separation */}
+              <div className="w-full grid grid-cols-2 items-center z-10 pointer-events-none">
+                  
+                  {/* P1 (Left) - Centered in Left Half */}
+                  <div className="flex justify-center items-center transform translate-x-[-150%] opacity-0 animate-[elastic-slide-right_1s_cubic-bezier(0.34,1.56,0.64,1)_0.2s_forwards]">
+                     <div className="relative group pointer-events-auto">
+                        <div className={`absolute -inset-8 bg-gradient-to-r rounded-full blur-2xl opacity-40 group-hover:opacity-80 transition duration-500 animate-pulse ${isBoss ? 'from-red-600 to-orange-600' : 'from-indigo-600 to-blue-600'}`}></div>
+                        <div className={`relative w-24 h-24 md:w-64 md:h-64 bg-slate-900 border-4 rounded-full flex items-center justify-center overflow-hidden shadow-[0_0_50px_rgba(99,102,241,0.5)] ${isBoss ? 'border-red-500 shadow-[0_0_50px_red]' : 'border-indigo-500'}`}>
+                            <CartoonAvatar id={p1} size="w-full h-full" isBoss={isBoss} />
+                            {/* 名字遮罩 */}
+                            <div className={`absolute bottom-0 w-full backdrop-blur-md py-3 text-center border-t ${isBoss ? 'bg-red-950/80 border-red-400/50' : 'bg-indigo-950/80 border-indigo-400/50'}`}>
+                               <span className={`text-lg md:text-3xl font-black text-white tracking-widest drop-shadow-md font-mono ${isBoss ? 'glitch' : ''}`} data-text={p1}>{p1}</span>
+                            </div>
+                        </div>
+                        {/* 装饰性角标 */}
+                        <div className={`absolute -top-6 -left-6 text-white text-sm md:text-lg font-bold px-4 md:px-6 py-2 rounded-full border-4 border-slate-950 uppercase tracking-wider shadow-lg transform -rotate-12 z-20 flex flex-col items-center whitespace-nowrap ${isBoss ? 'bg-red-700' : 'bg-indigo-600'}`}>
+                           {p1Label}
+                        </div>
+                        {/* 连胜记录 */}
+                        {p1Subtext && (
+                           <div className="absolute -bottom-6 -right-6 bg-yellow-500 text-yellow-950 text-base md:text-xl font-black px-5 py-2 rounded-full border-4 border-slate-950 shadow-[0_0_20px_rgba(234,179,8,0.8)] transform rotate-6 z-20 animate-bounce flex items-center gap-2 whitespace-nowrap">
+                              <Icons.Flame className="w-5 h-5" /> {p1Subtext}
+                           </div>
+                        )}
+                     </div>
+                  </div>
+
+                  {/* P2 (Right) - Centered in Right Half */}
+                  <div className="flex justify-center items-center transform translate-x-[150%] opacity-0 animate-[elastic-slide-left_1s_cubic-bezier(0.34,1.56,0.64,1)_0.6s_forwards]">
+                     <div className="relative group pointer-events-auto">
+                        <div className="absolute -inset-8 bg-gradient-to-r from-pink-600 to-rose-600 rounded-full blur-2xl opacity-40 group-hover:opacity-80 transition duration-500 animate-pulse"></div>
+                        <div className="relative w-24 h-24 md:w-64 md:h-64 bg-slate-900 border-4 border-pink-500 rounded-full flex items-center justify-center overflow-hidden shadow-[0_0_50px_rgba(236,72,153,0.5)]">
+                            <CartoonAvatar id={p2} size="w-full h-full" />
+                             <div className="absolute bottom-0 w-full bg-pink-950/80 backdrop-blur-md py-3 text-center border-t border-pink-400/50">
+                               <span className="text-lg md:text-3xl font-black text-white tracking-widest drop-shadow-md font-mono">{p2}</span>
+                            </div>
+                        </div>
+                        <div className="absolute -top-6 -right-6 bg-pink-600 text-white text-sm md:text-lg font-bold px-4 md:px-6 py-2 rounded-full border-4 border-slate-950 uppercase tracking-wider shadow-lg transform rotate-12 z-20 whitespace-nowrap">
+                           {p2Label}
+                        </div>
+                     </div>
+                  </div>
+              </div>
+
+              {/* VS (Center) - Absolute Positioning, Z-Index 50 */}
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 flex flex-col items-center pointer-events-none">
+                  {/* Lightning SVG */}
+                  <div className="absolute -top-12 md:-top-32 opacity-0 animate-[lightning-strike_0.4s_ease-out_1s_forwards] text-yellow-400 z-0">
+                     <Icons.Zap className="w-32 h-32 md:w-64 md:h-64 drop-shadow-[0_0_50px_rgba(234,179,8,1)] filter brightness-150" />
+                  </div>
+                  
+                  {/* Text */}
+                  <div className="relative z-10 text-5xl md:text-9xl lg:text-[10rem] leading-none font-black italic text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 via-orange-500 to-red-600 drop-shadow-[0_10px_20px_rgba(0,0,0,1)] transform scale-0 animate-[slam-impact_0.6s_cubic-bezier(0.175,0.885,0.32,1.275)_1.1s_forwards] whitespace-nowrap" style={{fontFamily: 'Impact, sans-serif', textShadow: '0 0 30px rgba(234,179,8,0.4), 4px 4px 0px rgba(0,0,0,0.5)'}}>
+                    VS
+                  </div>
+              </div>
+
+           </div>
+           
+           {/* Footer Text */}
+           <div className="absolute bottom-12 md:bottom-20 text-center animate-[fade-in_1s_ease-out_2s_backwards]">
+              <div className="text-xl md:text-2xl text-slate-400 font-mono tracking-[0.5em] uppercase mb-4 text-shadow-sm">Battle Starting</div>
+              <div className="flex justify-center gap-3">
+                 {[...Array(5)].map((_,i) => (
+                    <div key={i} className="w-3 h-3 md:w-4 md:h-4 bg-yellow-500 rounded-full animate-bounce shadow-[0_0_10px_rgba(234,179,8,0.8)]" style={{animationDelay: `${i*0.1}s`, animationDuration: '0.8s'}}></div>
+                 ))}
+              </div>
+           </div>
+        </div>
+      );
+    };
+    
+    // ==========================================
+    // 8.6 组件：隐藏BOSS解锁动画 (BossEntryAnimation)
+    // ==========================================
+    const BossEntryAnimation = ({ onComplete }) => {
+      const [stage, setStage] = useState(0); // 0: Chains, 1: Break, 2: Shatter
+      const audioRef = useRef(new Audio(BOSS_AUDIO_SRC)); // Preload boss music
+
+      useEffect(() => {
+        // Fallback music if local not found
+        audioRef.current.onerror = () => { audioRef.current.src = BOSS_AUDIO_FALLBACK; };
+        audioRef.current.volume = 0.5;
+        audioRef.current.play().catch(e => console.log("Auto play prevented"));
+
+        const t1 = setTimeout(() => setStage(1), 2000); // Break chains
+        const t2 = setTimeout(() => setStage(2), 2500); // Shatter screen
+        const t3 = setTimeout(onComplete, 4000); // Finish
+
+        return () => {
+          clearTimeout(t1); clearTimeout(t2); clearTimeout(t3);
+        }
+      }, [onComplete]);
+
+      return (
+        <div className="fixed inset-0 z-[200] bg-black flex items-center justify-center overflow-hidden">
+           {/* Chains */}
+           <div className={`absolute inset-0 transition-opacity duration-500 ${stage >= 2 ? 'opacity-0' : 'opacity-100'}`}>
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120vw] h-24 bg-zinc-800 border-y-4 border-zinc-600 flex items-center justify-center shadow-2xl transform -rotate-45 origin-center" style={{animation: stage === 0 ? 'chain-shake 0.1s infinite' : 'chain-break-left 0.5s forwards'}}>
+                 <div className="text-zinc-500 font-mono tracking-[50px] opacity-30">LOCKED LOCKED LOCKED</div>
+                 <Icons.Lock className="w-16 h-16 text-zinc-400 absolute" />
+              </div>
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120vw] h-24 bg-zinc-800 border-y-4 border-zinc-600 flex items-center justify-center shadow-2xl transform rotate-45 origin-center" style={{animation: stage === 0 ? 'chain-shake 0.1s infinite reverse' : 'chain-break-right 0.5s forwards'}}>
+                 <div className="text-zinc-500 font-mono tracking-[50px] opacity-30">LOCKED LOCKED LOCKED</div>
+                 <Icons.Lock className="w-16 h-16 text-zinc-400 absolute" />
+              </div>
+           </div>
+           
+           {/* Flash & Message */}
+           {stage >= 1 && (
+             <div className="absolute inset-0 bg-white animate-[flash_0.2s_ease-out_forwards]" style={{animationName: 'flash-green'}}></div>
+           )}
+           
+           {stage >= 2 && (
+             <div className="relative z-10 text-center animate-[pop-in_0.5s] text-red-600" style={{animation: 'screen-shatter 0.2s'}}>
+                <div className="text-9xl font-black glitch" data-text="UNLOCKED">UNLOCKED</div>
+                <div className="text-4xl text-white font-bold mt-4 tracking-widest uppercase">Secret Boss Challenge</div>
+             </div>
+           )}
+        </div>
+      );
+    };
+
+    // ==========================================
+    // 7.5 组件：擂台赛模式逻辑 (KingGame)
+    // ==========================================
+    const KingGame = ({ students, onBack, onMatchEnd }) => {
+       const [king, setKing] = useState(null);
+       const [challenger, setChallenger] = useState(null);
+       const [streak, setStreak] = useState(0); // 连胜数
+       const [streakRecords, setStreakRecords] = useState([]); // 本局连胜榜
+       const [phase, setPhase] = useState('setup'); // setup, lobby, intro, battle, defended, conquered, boss_entry
+       
+       // Boss Mode State derived from streak
+       const isBossMode = streak >= 12;
+
+       useEffect(() => {
+         if (isBossMode) document.body.classList.add('boss-mode');
+         else document.body.classList.remove('boss-mode');
+         return () => document.body.classList.remove('boss-mode');
+       }, [isBossMode]);
+
+       const getFireClass = (count) => {
+         if (isBossMode) return "fire-lv2 shadow-[0_0_60px_rgba(220,38,38,0.9)] border-4 border-red-600 scale-105"; // Boss uses intense red
+         if (count >= 8) return "fire-lv4 shadow-[0_0_60px_rgba(168,85,247,0.8)] border-4"; // Purple (New)
+         if (count >= 5) return "fire-lv3 shadow-[0_0_40px_rgba(59,130,246,0.6)] border-4"; // Blue
+         if (count >= 3) return "fire-lv2 shadow-[0_0_30px_rgba(239,68,68,0.6)] border-4"; // Red
+         if (count >= 1) return "fire-lv1 shadow-[0_0_20px_rgba(245,158,11,0.5)] border-2"; // Orange
+         return "border-slate-500 border-2";
+       };
+
+       const handleStartBattle = () => {
+         if (king && challenger && king !== challenger) {
+            setPhase('intro'); // 先进介绍动画
+         } else {
+            alert("请确保双方选手已就位且不相同！");
+         }
+       };
+
+       const handleBattleOver = (winnerId) => {
+          onMatchEnd(winnerId); // 记录总胜场 (英雄榜)
+          
+          if (winnerId === king) {
+             const newStreak = streak + 1;
+             setStreak(newStreak);
+             setChallenger(null);
+             
+             // Check for Boss Unlock
+             if (newStreak === 12) {
+                setPhase('boss_entry');
+             } else {
+                setPhase('defended');
+             }
+          } else {
+             const newRecord = { id: king, streak: streak };
+             setStreakRecords(prev => [...prev, newRecord].sort((a,b) => b.streak - a.streak).slice(0, 5));
+             
+             setKing(winnerId);
+             setStreak(1);
+             setChallenger(null);
+             setPhase('conquered');
+          }
+       };
+
+       const pickRandomChallenger = () => {
+          const others = students.filter(s => s !== king);
+          const r = others[Math.floor(Math.random() * others.length)];
+          setChallenger(r);
+       };
+
+       useEffect(() => {
+          if (phase === 'defended' || phase === 'conquered') {
+             const timer = setTimeout(() => {
+                setPhase('lobby');
+             }, 3000);
+             return () => clearTimeout(timer);
+          }
+       }, [phase]);
+
+       if (phase === 'setup') {
+          return (
+             <div className="flex flex-col items-center justify-center min-h-screen p-4 animate-[fade-in_0.5s]">
+                <div className="glass-panel p-8 rounded-2xl w-full max-w-md text-center">
+                   <button onClick={onBack} className="absolute top-4 left-4 text-slate-400 hover:text-white"><Icons.RotateCcw className="w-6 h-6"/></button>
+                   <Icons.Crown className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+                   <h2 className="text-2xl font-bold text-white mb-6">谁是第一任擂主?</h2>
+                   <div className="mb-6 text-left relative z-20">
+                      <CustomSelect 
+                          value={king}
+                          onChange={setKing}
+                          options={students}
+                          placeholder="选择初始擂主..."
+                          colorClass="focus:ring-yellow-500 hover:border-yellow-500"
+                      />
+                   </div>
+                   <button 
+                      onClick={() => king && setPhase('lobby')}
+                      disabled={!king}
+                      className="w-full py-3 bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold"
+                   >
+                      登上擂台
+                   </button>
+                </div>
+             </div>
+          );
+       }
+       
+       if (phase === 'boss_entry') {
+         return <BossEntryAnimation onComplete={() => setPhase('defended')} />;
+       }
+
+       if (phase === 'intro') {
+           return (
+             <MatchIntro 
+                p1={king} 
+                p2={challenger} 
+                p1Label={isBossMode ? "💀 隐藏BOSS" : "👑 现任擂主"}
+                p2Label="⚔️ 挑战者"
+                p1Subtext={streak > 0 ? `${streak} 连胜中!` : null}
+                onStart={() => setPhase('battle')} 
+                isBoss={isBossMode}
+             />
+           );
+       }
+
+       if (phase === 'battle') {
+          return (
+             <BattleArena 
+                p1={king} 
+                p2={challenger} 
+                onWinner={handleBattleOver}
+                onMatchEnd={() => {}} 
+                onBack={() => setPhase('lobby')}
+                mode="king"
+                isBossMode={isBossMode}
+             />
+          );
+       }
+       
+       if (phase === 'defended') {
+          return (
+             <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/90 backdrop-blur">
+                <div className="text-center animate-[pop-in_0.5s]">
+                   <div className={`text-6xl font-black mb-4 flex items-center justify-center gap-4 ${isBossMode ? 'text-red-500' : 'text-yellow-400'}`}>
+                      <Icons.Crown className="w-16 h-16" /> {isBossMode ? "BOSS 守擂!" : "守擂成功!"}
+                   </div>
+                   <div className={`w-40 h-40 mx-auto rounded-full border-4 overflow-hidden relative mb-4 shadow-[0_0_50px_rgba(234,179,8,0.5)] ${isBossMode ? 'border-red-600' : 'border-yellow-500'}`}>
+                      <CartoonAvatar id={king} size="w-full h-full" isBoss={isBossMode} />
+                   </div>
+                   <div className="text-3xl text-white font-bold">连胜场次: {streak}</div>
+                </div>
+             </div>
+          );
+       }
+
+       if (phase === 'conquered') {
+          return (
+             <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/90 backdrop-blur">
+                <div className="text-center animate-[slam_0.5s]">
+                   <div className="text-red-500 text-6xl font-black mb-4 flex items-center justify-center gap-4">
+                      <Icons.Swords className="w-16 h-16" /> 攻擂成功!
+                   </div>
+                   <div className="w-40 h-40 mx-auto rounded-full border-4 border-red-500 overflow-hidden relative mb-4 shadow-[0_0_50px_rgba(239,68,68,0.5)]">
+                      <CartoonAvatar id={king} size="w-full h-full" />
+                   </div>
+                   <div className="text-2xl text-slate-300">新擂主诞生</div>
+                </div>
+             </div>
+          );
+       }
+
+       return (
+          <div className="min-h-screen p-4 flex flex-col relative overflow-hidden transition-colors duration-1000">
+             <button onClick={onBack} className="absolute top-4 left-4 z-20 flex items-center gap-2 text-slate-400 hover:text-white px-3 py-1 rounded-lg bg-slate-800/50 hover:bg-slate-700 transition-all border border-slate-700"><Icons.RotateCcw className="w-5 h-5" /> 退出擂台</button>
+             
+             <div className="text-center mt-2 mb-8 z-10">
+                <h2 className={`text-4xl font-black text-transparent bg-clip-text inline-flex items-center gap-3 ${isBossMode ? 'bg-gradient-to-r from-red-600 to-black text-red-500 glitch' : 'bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500'}`} data-text={isBossMode ? "BOSS CHALLENGE" : ""}>
+                   <Icons.Flame className={`w-10 h-10 animate-pulse ${isBossMode ? 'text-red-600' : 'text-orange-500'}`} /> {isBossMode ? "隐藏 BOSS 挑战" : "擂台连胜挑战"}
+                </h2>
+             </div>
+
+             <div className="flex-1 flex flex-col md:flex-row gap-6 max-w-6xl mx-auto w-full z-10">
+                <div className={`flex-1 rounded-2xl p-8 flex flex-col items-center justify-center relative border-t-4 transition-all duration-500 ${isBossMode ? 'boss-panel border-red-600' : 'glass-panel border-yellow-500'}`}>
+                   <div className={`absolute top-4 left-0 w-full text-center font-bold tracking-widest uppercase text-sm ${isBossMode ? 'text-red-500 glitch' : 'text-yellow-500'}`} data-text={isBossMode ? "FINAL BOSS" : ""}>{isBossMode ? "FINAL BOSS" : "Current King"}</div>
+                   <div className={`relative w-48 h-48 rounded-full mb-6 transition-all duration-500 ${getFireClass(streak)}`}>
+                      <CartoonAvatar id={king} size="w-full h-full" isBoss={isBossMode} />
+                   </div>
+                   <div className="text-5xl font-black text-white mb-2">{king} <span className="text-2xl text-slate-400">号</span></div>
+                   <div className={`flex items-center gap-2 text-2xl font-bold px-4 py-2 rounded-full border ${isBossMode ? 'text-red-500 bg-black border-red-600' : 'text-yellow-400 bg-yellow-900/30 border-yellow-600/50'}`}>
+                      <Icons.Flame className="w-6 h-6" /> {streak} 连胜
+                   </div>
+                </div>
+
+                <div className="w-full md:w-64 flex flex-col justify-center items-center gap-6">
+                   <div className={`text-6xl font-black italic ${isBossMode ? 'text-red-600' : 'text-slate-700'}`}>VS</div>
+                   {challenger ? (
+                      <button 
+                         onClick={handleStartBattle}
+                         className={`w-full py-4 bg-gradient-to-r text-white rounded-xl font-bold text-xl shadow-[0_0_20px_rgba(220,38,38,0.5)] transition-all animate-pulse hover:scale-105 active:scale-95 ${isBossMode ? 'from-black to-red-900 border border-red-500' : 'from-red-600 to-pink-600'}`}
+                      >
+                         {isBossMode ? "挑战 BOSS" : "开始对决"}
+                      </button>
+                   ) : (
+                      <div className="w-full space-y-3 relative z-30">
+                         <button onClick={pickRandomChallenger} className="w-full py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 border border-slate-600">
+                            <Icons.Dice className="w-5 h-5" /> 随机挑战者
+                         </button>
+                         <div className="w-full text-left relative z-20">
+                            <CustomSelect 
+                                value={challenger}
+                                onChange={setChallenger}
+                                options={students.filter(s => s !== king)}
+                                placeholder="指定挑战者..."
+                                colorClass="bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-500"
+                            />
+                         </div>
+                      </div>
+                   )}
+                </div>
+
+                <div className="flex-1 glass-panel rounded-2xl p-8 flex flex-col items-center justify-center relative border-t-4 border-slate-500">
+                   <div className="absolute top-4 left-0 w-full text-center text-slate-400 font-bold tracking-widest uppercase text-sm">Challenger</div>
+                   <div className="w-40 h-40 rounded-full bg-slate-800 border-4 border-slate-600 flex items-center justify-center mb-6 overflow-hidden shadow-inner">
+                      {challenger ? (
+                         <CartoonAvatar id={challenger} size="w-full h-full" />
+                      ) : (
+                         <div className="text-slate-600 text-6xl">?</div>
+                      )}
+                   </div>
+                   
+                   <div className="flex items-baseline justify-center gap-1 min-h-[3rem]">
+                     {challenger ? (
+                        <>
+                           <span className="text-5xl font-black text-white">{challenger}</span>
+                           <span className="text-2xl text-slate-400 font-bold">号</span>
+                        </>
+                     ) : (
+                        <span className="text-3xl font-bold text-slate-500">等待挑战...</span>
+                     )}
+                   </div>
+                </div>
+             </div>
+
+             <div className="absolute bottom-6 right-6 w-72 glass-panel rounded-2xl p-6 hidden xl:block border border-slate-700 shadow-2xl z-20">
+                <div className="text-sm font-bold text-slate-400 uppercase mb-3 flex items-center gap-2 border-b border-slate-700 pb-2">
+                   <Icons.Trophy className="w-4 h-4 text-yellow-500" /> 本局连胜榜
+                </div>
+                <div className="space-y-2">
+                   {streakRecords.length === 0 && <div className="text-xs text-slate-600 text-center py-2">暂无纪录</div>}
+                   {streakRecords.map((rec, i) => (
+                      <div key={i} className="flex justify-between items-center text-sm">
+                         <div className="flex items-center gap-2">
+                            <span className={`text-xs w-4 ${i===0?'text-yellow-400':'text-slate-500'}`}>{i+1}</span>
+                            <span className="font-bold text-slate-200">{rec.id}号</span>
+                         </div>
+                         <span className="text-orange-400 font-mono font-bold">{rec.streak}胜</span>
+                      </div>
+                   ))}
+                </div>
+             </div>
+             
+             <div className="absolute top-0 left-0 w-full h-full -z-10 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+          </div>
+       );
+    };
+
+    // ==========================================
+    // 9. 组件：淘汰赛抽签图
+    // ==========================================
+    const TournamentBracket = ({ students, onBack, onMatchEnd }) => {
+      const [studentPool, setStudentPool] = useState([...students]); 
+      const [rounds, setRounds] = useState([]);
+      const [activeMatch, setActiveMatch] = useState(null);
+      const [introMatch, setIntroMatch] = useState(null);
+      const [champion, setChampion] = useState(null);
+      const [isDrawing, setIsDrawing] = useState(false); 
+      const [hasStarted, setHasStarted] = useState(false); 
+      const [drawState, setDrawState] = useState(Array(4).fill({ p1Status: 'waiting', p2Status: 'waiting' }));
+      const [svgPaths, setSvgPaths] = useState([]);
+      const containerRef = useRef(null);
+
+      const initBracket = () => {
+        const initialRounds = [
+          [{ p1: null, p2: null, winner: null }, { p1: null, p2: null, winner: null }, { p1: null, p2: null, winner: null }, { p1: null, p2: null, winner: null }], 
+          [{p1:null,p2:null}, {p1:null,p2:null}], 
+          [{p1:null,p2:null}]
+        ];
+        setRounds(initialRounds);
+        setChampion(null);
+        setHasStarted(false);
+        setDrawState(Array(4).fill({ p1Status: 'waiting', p2Status: 'waiting' }));
+      };
+
+      useEffect(() => {
+        initBracket();
+      }, []);
+
+      const startDraw = async () => {
+        if (studentPool.length < 2) {
+           alert("剩余学生不足以进行比赛！请重置或返回。");
+           return;
+        }
+
+        setHasStarted(true);
+        setIsDrawing(true);
+
+        const shuffled = shuffleArray([...studentPool]);
+        const currentBatch = shuffled.slice(0, 8);
+        
+        const selectedSet = new Set(currentBatch);
+        const remaining = studentPool.filter(id => !selectedSet.has(id));
+        
+        setStudentPool(remaining); 
+
+        while(currentBatch.length < 8) currentBatch.push('Bot');
+        
+        const updateDrawState = (matchIdx, player, status) => {
+          setDrawState(prev => { const next = [...prev]; next[matchIdx] = { ...next[matchIdx], [`${player}Status`]: status }; return next; });
+        };
+        const setPlayerValue = (matchIdx, player, value) => {
+           setRounds(prev => { const next = [...prev]; const round0 = [...next[0]]; const match = { ...round0[matchIdx], [player]: value }; round0[matchIdx] = match; next[0] = round0; return next; });
+        };
+
+        for (let i = 0; i < 4; i++) {
+           updateDrawState(i, 'p1', 'rolling'); await delay(400); 
+           updateDrawState(i, 'p1', 'done'); setPlayerValue(i, 'p1', currentBatch[i*2]); await delay(200);
+           updateDrawState(i, 'p2', 'rolling'); await delay(400);
+           updateDrawState(i, 'p2', 'done'); setPlayerValue(i, 'p2', currentBatch[i*2+1]); await delay(200);
+        }
+        await delay(200);
+        setIsDrawing(false);
+      };
+      
+      const handleNextBatch = () => {
+         initBracket();
+      };
+
+      useEffect(() => {
+        if (!containerRef.current) return; 
+
+        const calculatePaths = () => {
+          const newPaths = [];
+          const container = containerRef.current;
+          
+          const connections = [
+            { src: [0, 0], dest: [1, 0] }, { src: [0, 1], dest: [1, 0] },
+            { src: [0, 2], dest: [1, 1] }, { src: [0, 3], dest: [1, 1] },
+            { src: [1, 0], dest: [2, 0] }, { src: [1, 1], dest: [2, 0] }
+          ];
+
+          connections.forEach(({src, dest}) => {
+            const srcEl = document.getElementById(`match-${src[0]}-${src[1]}`);
+            const destEl = document.getElementById(`match-${dest[0]}-${dest[1]}`);
+
+            if (srcEl && destEl) {
+              const containerRect = container.getBoundingClientRect();
+              const srcRect = srcEl.getBoundingClientRect();
+              const destRect = destEl.getBoundingClientRect();
+
+              const startX = srcRect.right - containerRect.left;
+              const startY = srcRect.top + srcRect.height / 2 - containerRect.top;
+
+              const isTopSlot = src[1] % 2 === 0;
+              const endX = destRect.left - containerRect.left;
+              const endY = destRect.top + (isTopSlot ? destRect.height * 0.25 : destRect.height * 0.75) - containerRect.top;
+
+              const midX = (startX + endX) / 2;
+              newPaths.push(`M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`);
+            }
+          });
+          setSvgPaths(newPaths);
+        };
+
+        const timer = setTimeout(calculatePaths, 100);
+        window.addEventListener('resize', calculatePaths);
+        return () => { clearTimeout(timer); window.removeEventListener('resize', calculatePaths); };
+      }, [rounds, hasStarted]); 
+
+      const handleMatchStart = (rIdx, mIdx) => {
+        if (isDrawing) return; 
+        const match = rounds[rIdx][mIdx];
+        if (match.p1 && match.p2 && !match.winner) {
+          setIntroMatch({ rIdx, mIdx, ...match });
+        }
+      };
+
+      const handleIntroFinished = () => {
+        if (introMatch) {
+           setActiveMatch(introMatch);
+           setIntroMatch(null);
+        }
+      };
+
+      const handleMatchWinner = (winner) => {
+        const { rIdx, mIdx } = activeMatch;
+        const newRounds = [...rounds];
+        newRounds[rIdx] = [...newRounds[rIdx]];
+        newRounds[rIdx][mIdx] = { ...newRounds[rIdx][mIdx], winner };
+
+        if (rIdx < 2) {
+          const nextR = rIdx + 1;
+          const nextM = Math.floor(mIdx / 2);
+          const pos = mIdx % 2 === 0 ? 'p1' : 'p2';
+          if (!newRounds[nextR]) newRounds[nextR] = [];
+          newRounds[nextR] = [...newRounds[nextR]];
+          newRounds[nextR][nextM] = { ...newRounds[nextR][nextM], [pos]: winner };
+        } else {
+          setChampion(winner);
+        }
+        setRounds(newRounds);
+        setActiveMatch(null);
+      };
+      
+      if (introMatch) {
+         return <MatchIntro p1={introMatch.p1} p2={introMatch.p2} onStart={handleIntroFinished} />;
+      }
+
+      if (activeMatch) return <BattleArena p1={activeMatch.p1} p2={activeMatch.p2} onWinner={handleMatchWinner} onMatchEnd={onMatchEnd} mode="tournament" onBack={() => setActiveMatch(null)} />;
+
+      if (champion) {
+        return (
+          <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-900 overflow-hidden">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-yellow-600/20 via-slate-900 to-black animate-pulse"></div>
+            
+            <div className="absolute inset-0 flex items-center justify-center">
+               <div className="w-[800px] h-[800px] bg-yellow-500/10 rounded-full blur-3xl animate-[pulse-ring_3s_infinite]"></div>
+            </div>
+
+            <div className="relative z-10 text-center p-12 glass-panel rounded-3xl border-2 border-yellow-400 shadow-[0_0_100px_rgba(234,179,8,0.3)] max-w-2xl w-full mx-4">
+               <div className="animate-[pop-in_0.5s_cubic-bezier(0.175,0.885,0.32,1.275)] mb-8">
+                  <Icons.Trophy className="w-32 h-32 mx-auto text-yellow-400 drop-shadow-[0_0_20px_rgba(234,179,8,0.8)]" />
+               </div>
+               
+               <div className="text-3xl text-yellow-200 uppercase tracking-[0.5em] mb-6 font-bold animate-[slide-in-up_0.7s_ease-out]">Champion</div>
+               
+               <div className="text-[10rem] leading-none font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-100 via-yellow-300 to-yellow-600 mb-10 animate-[slam_0.5s_cubic-bezier(0.175,0.885,0.32,1.275)_0.2s_backwards] drop-shadow-2xl">
+                 {champion}
+               </div>
+               
+               <div className="flex flex-col md:flex-row gap-4 justify-center animate-[fade-in_1s_ease-out_0.8s_backwards]">
+                 <button onClick={onBack} className="px-8 py-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold border border-slate-600 transition-all">
+                   返回主菜单
+                 </button>
+                 {studentPool.length >= 2 && (
+                    <button onClick={handleNextBatch} className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl font-bold shadow-xl shadow-indigo-900/40 flex items-center justify-center gap-2 transform hover:scale-105 transition-all">
+                       <Icons.RotateCcw className="w-6 h-6"/> 
+                       <span>继续下一轮抽签</span>
+                       <span className="bg-white/20 px-2 py-0.5 rounded text-sm ml-1">{studentPool.length}人待定</span>
+                    </button>
+                 )}
+               </div>
+            </div>
+            
+            <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden">
+               {[...Array(20)].map((_, i) => (
+                  <div key={i} className="absolute w-2 h-4 bg-yellow-500 rounded" style={{
+                     left: `${Math.random() * 100}%`,
+                     top: `-10%`,
+                     animation: `float ${3 + Math.random() * 2}s linear infinite`,
+                     animationDelay: `${Math.random() * 2}s`,
+                     backgroundColor: ['#fcd34d', '#f87171', '#60a5fa', '#a78bfa'][Math.floor(Math.random() * 4)]
+                  }}></div>
+               ))}
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="h-screen flex flex-col bg-slate-950 p-4 overflow-hidden relative">
+          <div className="flex justify-between items-center mb-2 z-20 relative shrink-0">
+            <button onClick={onBack} className="flex items-center gap-2 text-slate-400 hover:text-white px-3 py-1 rounded-lg border border-transparent hover:border-slate-700 hover:bg-slate-800 transition-all"><Icons.RotateCcw className="w-5 h-5" /> 退出淘汰赛</button>
+            <h2 className="text-2xl font-bold text-yellow-500 flex items-center gap-2"><Icons.Dice className={`w-6 h-6 ${isDrawing ? 'animate-spin' : ''}`}/> {isDrawing ? "抽签进行中..." : "8强淘汰赛对阵"}</h2>
+          </div>
+          
+          <div className="flex-1 flex justify-center items-center overflow-auto relative">
+             <div className="relative flex gap-24 p-10 min-w-max" ref={containerRef}>
+               {!hasStarted && (
+                 <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm rounded-3xl">
+                   <button 
+                     onClick={startDraw}
+                     className="px-10 py-5 bg-gradient-to-r from-yellow-500 to-amber-600 text-white text-3xl font-black rounded-full shadow-[0_0_50px_rgba(234,179,8,0.5)] hover:scale-105 active:scale-95 transition-all animate-bounce"
+                   >
+                     {studentPool.length < 8 ? `抽取最后 ${studentPool.length} 人` : "开始一键抽签"}
+                   </button>
+                 </div>
+               )}
+
+               <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{zIndex: 0}}>
+                 {svgPaths.map((d, i) => (
+                   <path key={i} d={d} stroke="#475569" strokeWidth="2" fill="none" className="transition-all duration-500" />
+                 ))}
+               </svg>
+
+               {rounds.map((round, rIdx) => (
+                <div key={rIdx} className="flex flex-col justify-around gap-8 z-10 relative">
+                  {round.map((match, mIdx) => {
+                    let p1Rolling = false, p2Rolling = false;
+                    if (rIdx === 0 && isDrawing) { p1Rolling = drawState[mIdx]?.p1Status === 'rolling'; p2Rolling = drawState[mIdx]?.p2Status === 'rolling'; }
+                    const isClickable = match.p1 && match.p2 && !match.winner && !isDrawing && hasStarted;
+                    
+                    return (
+                    <div 
+                      key={mIdx} 
+                      id={`match-${rIdx}-${mIdx}`} 
+                      onClick={() => handleMatchStart(rIdx, mIdx)} 
+                      className={`w-52 p-4 rounded-xl border-2 transition-all relative bg-slate-900 flex flex-col gap-3
+                        ${match.winner ? 'border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.3)]' : (isClickable ? 'border-yellow-500 hover:scale-105 hover:bg-slate-800 cursor-pointer shadow-[0_0_15px_rgba(234,179,8,0.3)]' : 'border-slate-700 opacity-80')}
+                      `}
+                    >
+                      {rIdx === 0 && <div className="absolute -left-6 top-1/2 -translate-y-1/2 text-xs text-slate-600 font-mono rotate-90 w-4">R1</div>}
+                      
+                      <div className="flex items-center gap-3">
+                         <div className={`transition-all duration-500 ${match.p1 ? 'scale-100 opacity-100' : (p1Rolling ? 'scale-90 opacity-80 animate-pulse' : 'scale-0 opacity-0')}`}>
+                            <CartoonAvatar id={match.p1 || "mystery"} size="w-10 h-10" />
+                         </div>
+                         <div className={`flex-1 font-mono font-bold text-xl ${match.winner === match.p1 ? 'text-green-400' : 'text-slate-300'}`}>
+                            <SlotMachineNumber value={match.p1} isRolling={p1Rolling} />
+                         </div>
+                         {match.winner === match.p1 && <Icons.Zap className="w-5 h-5 text-yellow-400 fill-yellow-400 animate-bounce" />}
+                      </div>
+
+                      <div className="h-px bg-slate-600/50"></div>
+
+                      <div className="flex items-center gap-3">
+                         <div className={`transition-all duration-500 ${match.p2 ? 'scale-100 opacity-100' : (p2Rolling ? 'scale-90 opacity-80 animate-pulse' : 'scale-0 opacity-0')}`}>
+                            <CartoonAvatar id={match.p2 || "mystery"} size="w-10 h-10" />
+                         </div>
+                         <div className={`flex-1 font-mono font-bold text-xl ${match.winner === match.p2 ? 'text-green-400' : 'text-slate-300'}`}>
+                            <SlotMachineNumber value={match.p2} isRolling={p2Rolling} />
+                         </div>
+                         {match.winner === match.p2 && <Icons.Zap className="w-5 h-5 text-yellow-400 fill-yellow-400 animate-bounce" />}
+                      </div>
+
+                      {isClickable && <div className="absolute -top-2 -right-2 w-4 h-4 bg-yellow-500 rounded-full animate-ping"></div>}
+                    </div>
+                  )})}
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          <div className="mt-2 h-24 bg-slate-900/80 border-t border-slate-700 backdrop-blur rounded-t-xl shrink-0 flex flex-col">
+             <div className="px-4 py-2 flex justify-between items-center border-b border-slate-800">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                   <Icons.Users className="w-4 h-4" /> 剩余选手池 ({studentPool.length})
+                </span>
+             </div>
+             <div className="flex-1 overflow-x-auto overflow-y-hidden p-3 flex gap-2 items-center">
+                {studentPool.sort((a,b) => parseInt(a) - parseInt(b)).map(id => (
+                   <div key={id} className="pool-grid-item w-10 h-10 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center text-xs font-mono text-slate-400 shrink-0">
+                      {id}
+                   </div>
+                ))}
+                {studentPool.length === 0 && <span className="text-slate-600 text-sm ml-4 italic">全员已出战</span>}
+             </div>
+          </div>
+        </div>
+      );
+    };
+
+    // ==========================================
+    // 10. 主程序 App
+    // ==========================================
+    const App = () => {
+      const [currentView, setCurrentView] = useState('setup'); 
+      const [classNum, setClassNum] = useState(1);
+      const [students, setStudents] = useState([]);
+      const [selectedMatch, setSelectedMatch] = useState({ p1: null, p2: null });
+      
+      const [stats1, setStats1] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('drone_stats_c1') || '{}'); } catch(e) { return {}; }
+      });
+      const [stats2, setStats2] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('drone_stats_c2') || '{}'); } catch(e) { return {}; }
+      });
+
+      useEffect(() => { localStorage.setItem('drone_stats_c1', JSON.stringify(stats1)); }, [stats1]);
+      useEffect(() => { localStorage.setItem('drone_stats_c2', JSON.stringify(stats2)); }, [stats2]);
+
+      const updateStats = (winnerId) => {
+        if (classNum === 1) {
+           setStats1(prev => ({ ...prev, [winnerId]: (prev[winnerId] || 0) + 1 }));
+        } else {
+           setStats2(prev => ({ ...prev, [winnerId]: (prev[winnerId] || 0) + 1 }));
+        }
+      };
+
+      const handleStart = (mode, studentList) => {
+         setStudents(studentList);
+         setCurrentView(mode);
+      };
+
+      const handle1v1Confirm = (p1, p2) => {
+         setSelectedMatch({ p1, p2 });
+         setCurrentView('battle');
+      };
+
+      return (
+        <div className="antialiased text-slate-200">
+           {currentView === 'setup' && (
+             <SetupView 
+               onStart={handleStart} 
+               onLeaderboard={() => setCurrentView('leaderboard')}
+               classNum={classNum}
+               setClassNum={setClassNum}
+             />
+           )}
+
+           {currentView === 'select-players' && (
+             <PlayerSelection 
+               students={students}
+               onBack={() => setCurrentView('setup')}
+               onConfirm={handle1v1Confirm}
+             />
+           )}
+
+           {currentView === 'battle' && (
+             <BattleArena 
+               p1={selectedMatch.p1}
+               p2={selectedMatch.p2}
+               mode="1v1"
+               onWinner={updateStats}
+               onBack={() => setCurrentView('select-players')}
+             />
+           )}
+
+           {currentView === 'king-mode' && (
+             <KingGame 
+               students={students}
+               onMatchEnd={updateStats}
+               onBack={() => setCurrentView('setup')}
+             />
+           )}
+
+           {currentView === 'tournament' && (
+             <TournamentBracket 
+               students={students}
+               onMatchEnd={updateStats}
+               onBack={() => setCurrentView('setup')}
+             />
+           )}
+
+           {currentView === 'leaderboard' && (
+             <Leaderboard 
+               stats={classNum === 1 ? stats1 : stats2}
+               currentClass={classNum}
+               onClassChange={setClassNum}
+               onBack={() => setCurrentView('setup')}
+               onClearStats={() => classNum === 1 ? setStats1({}) : setStats2({})}
+             />
+           )}
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>
